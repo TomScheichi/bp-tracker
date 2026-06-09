@@ -1,0 +1,1574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Blood Pressure Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ── Tokens ──────────────────────────────────────── */
+:root {
+  --bg:      #f0f4f8;
+  --surf:    #ffffff;
+  --surf-2:  #f8fafc;
+  --border:  #e2e8f0;
+  --border-2:#cbd5e1;
+  --text:    #0f172a;
+  --text-2:  #334155;
+  --muted:   #64748b;
+  --subtle:  #94a3b8;
+  --primary: #3b82f6;
+  --prim-h:  #2563eb;
+  --prim-l:  #eff6ff;
+  --c-normal:#dcfce7; --c-normal-t:#15803d;
+  --c-elev:  #fef9c3; --c-elev-t:  #a16207;
+  --c-s1:    #ffedd5; --c-s1-t:    #c2410c;
+  --c-s2:    #fee2e2; --c-s2-t:    #b91c1c;
+  --c-crisis:#ede9fe; --c-crisis-t:#6d28d9;
+  --radius:  11px;
+  --radius-s:7px;
+  --sh:   0 1px 3px rgba(0,0,0,.07),0 1px 2px rgba(0,0,0,.04);
+  --sh-m: 0 4px 14px rgba(0,0,0,.09),0 1px 3px rgba(0,0,0,.04);
+}
+[data-theme="dark"] {
+  --bg:      #0d1829;
+  --surf:    #182233;
+  --surf-2:  #111e2e;
+  --border:  #263447;
+  --border-2:#374f68;
+  --text:    #e8f0fe;
+  --text-2:  #b8cce0;
+  --muted:   #7a95b0;
+  --subtle:  #3d5068;
+  --primary: #60a5fa;
+  --prim-h:  #3b82f6;
+  --prim-l:  #162540;
+  --c-normal:#0f3d22; --c-normal-t:#6ee7a0;
+  --c-elev:  #4a2a08; --c-elev-t:  #fde68a;
+  --c-s1:    #4a1a07; --c-s1-t:    #fed7aa;
+  --c-s2:    #4a0f0f; --c-s2-t:    #fca5a5;
+  --c-crisis:#2e0a52; --c-crisis-t:#d8b4fe;
+  --sh:   0 1px 4px rgba(0,0,0,.45);
+  --sh-m: 0 6px 20px rgba(0,0,0,.55),0 1px 4px rgba(0,0,0,.3);
+}
+
+/* ── Reset ───────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body {
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  font-size:15px; line-height:1.5;
+  background:var(--bg); color:var(--text);
+  min-height:100vh; padding-bottom:4rem;
+  -webkit-font-smoothing:antialiased;
+  transition:background .3s,color .3s;
+}
+
+/* ── Header ──────────────────────────────────────── */
+header{background:linear-gradient(135deg,#2563eb 0%,#1e40af 100%);color:#fff;padding:1rem 1.5rem;display:flex;align-items:center;gap:.75rem;box-shadow:0 2px 12px rgba(0,0,0,.2);}
+header h1{font-size:1.125rem;font-weight:700;letter-spacing:-.02em;}
+
+/* ── Nav ─────────────────────────────────────────── */
+nav{background:var(--surf);border-bottom:1px solid var(--border);display:flex;padding:0 1.25rem;position:sticky;top:0;z-index:10;box-shadow:var(--sh);transition:background .3s,border-color .3s;}
+.nav-btn{padding:.6875rem 1rem;border:none;background:none;font-size:.875rem;font-weight:500;color:var(--muted);cursor:pointer;border-bottom:2.5px solid transparent;transition:color .15s,border-color .15s;display:flex;align-items:center;gap:.3125rem;letter-spacing:-.01em;}
+.nav-btn.active{color:var(--primary);border-bottom-color:var(--primary);}
+.nav-btn:hover:not(.active){color:var(--text-2);}
+
+/* ── Layout ──────────────────────────────────────── */
+.page{display:none;} .page.active{display:block;}
+.main{max-width:960px;margin:0 auto;padding:1.375rem 1.25rem;display:flex;flex-direction:column;gap:1.125rem;}
+
+/* ── Card ────────────────────────────────────────── */
+.card{background:var(--surf);border-radius:var(--radius);border:1px solid var(--border);box-shadow:var(--sh);padding:1.25rem 1.5rem;transition:background .3s,border-color .3s;}
+.card-title{font-size:.875rem;font-weight:600;margin-bottom:1rem;color:var(--text-2);letter-spacing:-.01em;}
+
+/* ── Form ────────────────────────────────────────── */
+.form-top{margin-bottom:1rem;}
+label{display:block;font-size:.6875rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin-bottom:.3125rem;}
+input[type="date"],input[type="number"]{width:100%;padding:.4375rem .625rem;border:1.5px solid var(--border);border-radius:var(--radius-s);font-size:.9375rem;font-family:inherit;color:var(--text);background:var(--surf);transition:border-color .15s,box-shadow .15s,background .3s;}
+input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(59,130,246,.18);}
+.date-wrap{width:200px;}
+
+.sessions-grid{display:grid;grid-template-columns:1fr 1fr;gap:.875rem;}
+.session-box{border:1.5px solid var(--border);border-radius:var(--radius-s);overflow:hidden;transition:border-color .3s;}
+.session-header{padding:.4375rem .875rem;font-size:.6875rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;display:flex;align-items:center;gap:.375rem;}
+.session-header.morning{background:var(--c-elev);color:var(--c-elev-t);border-bottom:1px solid var(--border);}
+.session-header.evening{background:var(--c-crisis);color:var(--c-crisis-t);border-bottom:1px solid var(--border);}
+.readings{padding:.6875rem;display:flex;flex-direction:column;gap:.5rem;}
+.reading-row{display:grid;grid-template-columns:38px 1fr 1fr;align-items:center;gap:.5rem;}
+.rdg-lbl{font-size:.625rem;font-weight:700;letter-spacing:.04em;color:var(--muted);}
+.unit{font-size:.625rem;color:var(--subtle);margin-left:2px;}
+
+.btn-save{margin-top:.875rem;width:100%;padding:.5625rem;background:var(--primary);color:#fff;border:none;border-radius:var(--radius-s);font-size:.9375rem;font-family:inherit;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:.4rem;transition:background .15s,transform .1s,box-shadow .15s;box-shadow:0 1px 6px rgba(59,130,246,.3);}
+.btn-save:hover{background:var(--prim-h);box-shadow:0 3px 10px rgba(59,130,246,.35);}
+.btn-save:active{transform:scale(.99);}
+
+/* ── BP Legend chips ─────────────────────────────── */
+.legend{display:flex;flex-wrap:wrap;gap:.375rem;}
+.chip{font-size:.6875rem;font-weight:600;padding:.1875rem .5rem;border-radius:20px;}
+.bp-normal  {background:var(--c-normal);  color:var(--c-normal-t);}
+.bp-elevated{background:var(--c-elev);    color:var(--c-elev-t);}
+.bp-stage1  {background:var(--c-s1);      color:var(--c-s1-t);}
+.bp-stage2  {background:var(--c-s2);      color:var(--c-s2-t);}
+.bp-crisis  {background:var(--c-crisis);  color:var(--c-crisis-t);}
+
+/* ── Table ───────────────────────────────────────── */
+.table-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:.8125rem;}
+thead tr th{padding:.4375rem .5rem;font-size:.625rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);border-bottom:2px solid var(--border);white-space:nowrap;text-align:center;}
+thead tr:first-child th{background:var(--surf-2);}
+thead th.group-morning{color:var(--c-elev-t);background:var(--c-elev);border-bottom:1px solid var(--border);}
+thead th.group-evening{color:var(--c-crisis-t);background:var(--c-crisis);border-bottom:1px solid var(--border);}
+td{padding:.375rem .5rem;border-bottom:1px solid var(--border);text-align:center;vertical-align:middle;transition:background .15s;}
+tbody tr:last-child td{border-bottom:none;}
+tbody tr:hover td{background:var(--surf-2);}
+.date-cell{text-align:left;white-space:nowrap;}
+.date-main{font-weight:600;font-size:.8125rem;}
+.date-sub{font-size:.625rem;color:var(--muted);}
+.bp-chip{display:inline-block;padding:.15rem .4375rem;border-radius:5px;font-weight:600;font-variant-numeric:tabular-nums;}
+.btn-del{background:none;border:none;cursor:pointer;color:var(--subtle);padding:.2rem .375rem;border-radius:4px;font-size:.875rem;transition:color .15s,background .15s;}
+.btn-del:hover{color:#ef4444;background:var(--c-s2);}
+.empty-state{padding:3rem 1rem;text-align:center;color:var(--muted);}
+.empty-state .icon{font-size:2.25rem;margin-bottom:.625rem;opacity:.6;}
+
+/* ── Stats filter bars ───────────────────────────── */
+.filter-bar{display:flex;gap:.3125rem;flex-wrap:wrap;margin-bottom:.75rem;}
+.filter-btn{padding:.3125rem .6875rem;border:1.5px solid var(--border);border-radius:6px;background:var(--surf);font-size:.8125rem;font-weight:500;font-family:inherit;color:var(--muted);cursor:pointer;transition:all .15s;}
+.filter-btn:hover{border-color:var(--primary);color:var(--primary);}
+.filter-btn.active{background:var(--primary);border-color:var(--primary);color:#fff;box-shadow:0 1px 4px rgba(59,130,246,.3);}
+.period-bar{display:flex;align-items:center;gap:.3125rem;flex-wrap:wrap;margin-bottom:.75rem;padding-bottom:.75rem;border-bottom:1px solid var(--border);}
+.mfilter-bar{display:flex;align-items:center;gap:.3125rem;flex-wrap:wrap;padding:.75rem 0;margin-bottom:.875rem;border-bottom:1px solid var(--border);}
+.mfilter-lbl{font-size:.625rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);white-space:nowrap;margin-right:.125rem;}
+.mfilter-sep{width:1px;height:16px;background:var(--border);margin:0 .375rem;flex-shrink:0;}
+
+/* ── Threshold inputs ────────────────────────────── */
+.thresh-bar{display:flex;flex-wrap:wrap;align-items:center;gap:.875rem;padding:.75rem 0;margin-bottom:.875rem;border-bottom:1px solid var(--border);}
+.thresh-group{display:flex;align-items:center;gap:.5rem;}
+.thresh-metric{font-size:.8125rem;font-weight:600;white-space:nowrap;min-width:64px;}
+.thresh-inputs{display:flex;align-items:center;gap:.375rem;}
+.thresh-inp{width:60px;padding:.3125rem .5rem;border:1.5px solid var(--border);border-radius:var(--radius-s);font-size:.875rem;font-family:inherit;text-align:center;color:var(--text);background:var(--surf);transition:border-color .15s,box-shadow .15s,background .3s;}
+.thresh-inp:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(59,130,246,.18);}
+.thresh-dash{color:var(--muted);font-weight:500;line-height:1;}
+.thresh-unit{font-size:.625rem;color:var(--muted);white-space:nowrap;}
+
+/* ── Stat summary cards ──────────────────────────── */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:.75rem;margin-bottom:1.125rem;}
+.stat-card{background:var(--surf-2);border:1px solid var(--border);border-radius:var(--radius-s);padding:.8125rem .9375rem;transition:background .3s,border-color .3s;}
+.stat-card .val{font-size:1.3125rem;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.1;margin-bottom:.1875rem;}
+.stat-card .lbl{font-size:.6875rem;color:var(--muted);}
+
+/* ── Chart ───────────────────────────────────────── */
+.chart-outer{position:relative;width:100%;}
+.chart-outer svg{display:block;width:100%;height:auto;}
+.chart-tooltip{position:absolute;background:rgba(15,23,42,.93);color:#fff;font-size:.75rem;line-height:1.55;padding:.5625rem .8125rem;border-radius:8px;pointer-events:none;opacity:0;transition:opacity .1s;white-space:nowrap;z-index:20;border:1px solid rgba(255,255,255,.08);}
+[data-theme="dark"] .chart-tooltip{background:rgba(5,15,30,.95);border:1px solid rgba(255,255,255,.12);}
+.chart-legend{display:flex;gap:1.125rem;font-size:.8125rem;margin-bottom:.5rem;}
+.chart-legend-item{display:flex;align-items:center;gap:.3125rem;color:var(--muted);}
+.chart-legend-item .dot{width:9px;height:9px;border-radius:50%;}
+
+/* ── Me-grid (morning/evening breakdown) ─────────── */
+.me-grid{display:grid;grid-template-columns:1fr 1fr;gap:.875rem;}
+.me-card{background:var(--surf-2);border:1px solid var(--border);border-radius:var(--radius-s);padding:.875rem 1rem;transition:background .3s,border-color .3s;}
+.me-title{font-size:.625rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:.5rem;}
+.me-title.morning{color:var(--c-elev-t);}
+.me-title.evening{color:var(--c-crisis-t);}
+.me-vals{display:flex;gap:1.375rem;}
+.me-val .v{font-size:1.1875rem;font-weight:700;font-variant-numeric:tabular-nums;}
+.me-val .l{font-size:.625rem;color:var(--muted);}
+
+/* ── Toast ───────────────────────────────────────── */
+#toast{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%) translateY(6px);background:var(--text);color:var(--bg);padding:.5rem 1.125rem;border-radius:7px;font-size:.875rem;font-weight:500;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;white-space:nowrap;box-shadow:var(--sh-m);}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* ── Test page ───────────────────────────────────── */
+.test-hero{text-align:center;padding:2rem 1rem 1.375rem;color:var(--muted);}
+.test-hero .icon{font-size:2.25rem;margin-bottom:.5rem;opacity:.7;}
+.test-hero p{font-size:.9375rem;}
+.test-actions{display:flex;justify-content:center;}
+
+/* ── Dialog ──────────────────────────────────────── */
+dialog{border:none;border-radius:var(--radius);padding:0;box-shadow:var(--sh-m);max-width:500px;width:92vw;background:var(--surf);}
+dialog::backdrop{background:rgba(10,18,40,.55);}
+.dlg-header{padding:1rem 1.5rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.dlg-title{font-size:.9375rem;font-weight:600;}
+.dlg-close{background:none;border:none;cursor:pointer;color:var(--muted);font-size:1.25rem;line-height:1;padding:.25rem .375rem;border-radius:5px;transition:background .15s,color .15s;}
+.dlg-close:hover{background:var(--surf-2);color:var(--text);}
+.dlg-body{padding:1.25rem 1.5rem;display:flex;flex-direction:column;gap:1.125rem;}
+.dlg-section-title{font-size:.6875rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:.5rem;}
+.dlg-divider{border:none;border-top:1px solid var(--border);margin:0;}
+
+/* Scenario radio cards */
+.scenario-grid{display:grid;grid-template-columns:1fr 1fr;gap:.4375rem;}
+.scenario-option{position:relative;}
+.scenario-option input[type="radio"]{position:absolute;opacity:0;width:0;height:0;}
+.scenario-label{display:block;padding:.5rem .75rem;border:1.5px solid var(--border);border-radius:var(--radius-s);cursor:pointer;transition:border-color .15s,background .15s;font-size:.8125rem;background:var(--surf);}
+.scenario-label strong{display:block;font-size:.8125rem;margin-bottom:.1rem;}
+.scenario-label span{font-size:.6875rem;color:var(--muted);}
+.scenario-option input:checked + .scenario-label{border-color:var(--primary);background:var(--prim-l);}
+
+.days-row{display:flex;align-items:center;gap:.75rem;}
+.days-row label{margin:0;white-space:nowrap;}
+select{padding:.375rem .625rem;border:1.5px solid var(--border);border-radius:var(--radius-s);font-size:.9375rem;font-family:inherit;color:var(--text);background:var(--surf);cursor:pointer;transition:border-color .15s,background .3s;}
+select:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(59,130,246,.18);}
+.dlg-note{font-size:.75rem;color:var(--muted);background:var(--surf-2);border:1px solid var(--border);border-radius:var(--radius-s);padding:.5rem .75rem;}
+
+/* ── Buttons ─────────────────────────────────────── */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:.3125rem;padding:.4375rem .9375rem;border-radius:var(--radius-s);font-size:.875rem;font-family:inherit;font-weight:500;cursor:pointer;transition:background .15s,transform .1s,box-shadow .15s;border:none;}
+.btn:active{transform:scale(.98);}
+.btn-outline{background:var(--surf);border:1.5px solid var(--border);color:var(--text-2);}
+.btn-outline:hover{background:var(--surf-2);}
+.btn-primary-sm{background:var(--primary);color:#fff;box-shadow:0 1px 4px rgba(59,130,246,.25);}
+.btn-primary-sm:hover{background:var(--prim-h);}
+.btn-danger{background:#ef4444;color:#fff;}
+.btn-danger:hover{background:#dc2626;}
+.btn-danger-outline{background:var(--surf);border:1.5px solid #fca5a5;color:#ef4444;}
+.btn-danger-outline:hover{background:var(--c-s2);}
+.delete-row{display:flex;gap:.5rem;flex-wrap:wrap;}
+.test-count{font-size:.8125rem;color:var(--muted);margin-bottom:.625rem;}
+.test-count strong{color:var(--text);}
+
+/* ── Settings page ───────────────────────────────── */
+.setting-section-title{font-size:.6875rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:.625rem;margin-top:1.25rem;}
+.setting-section-title:first-of-type{margin-top:0;}
+.setting-row{display:flex;align-items:center;justify-content:space-between;padding:.875rem 0;border-bottom:1px solid var(--border);}
+.setting-row:last-child{border-bottom:none;}
+.setting-label{font-size:.9375rem;font-weight:500;color:var(--text);}
+.setting-desc{font-size:.75rem;color:var(--muted);margin-top:.1rem;}
+.setting-right{flex-shrink:0;margin-left:1rem;}
+/* Toggle switch */
+.toggle{position:relative;display:inline-block;width:42px;height:24px;cursor:pointer;}
+.toggle input{opacity:0;width:0;height:0;position:absolute;}
+.toggle-track{display:block;width:100%;height:100%;border-radius:12px;background:var(--border-2);transition:background .2s;}
+.toggle input:checked ~ .toggle-track{background:var(--primary);}
+.toggle-thumb{position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.25);transition:transform .2s;}
+.toggle input:checked ~ .toggle-thumb{transform:translateX(18px);}
+.toggle:focus-within .toggle-track{box-shadow:0 0 0 3px rgba(59,130,246,.2);}
+
+/* ── Responsive ──────────────────────────────────── */
+@media(max-width:600px){
+  .sessions-grid{grid-template-columns:1fr;}
+  .me-grid{grid-template-columns:1fr;}
+  .date-wrap{width:100%;}
+  .scenario-grid{grid-template-columns:1fr;}
+  .main{padding:1rem .875rem;}
+  .card{padding:1rem 1.125rem;}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+  <h1>Blood Pressure Tracker</h1>
+</header>
+
+<nav>
+  <button class="nav-btn active" onclick="showPage('log',this)">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+    <span data-i18n="nav.log">Log</span>
+  </button>
+  <button class="nav-btn" onclick="showPage('stats',this)">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+    <span data-i18n="nav.stats">Statistics</span>
+  </button>
+  <button class="nav-btn" onclick="showPage('settings',this)">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    <span data-i18n="nav.settings">Settings</span>
+  </button>
+</nav>
+
+<!-- LOG PAGE -->
+<div id="page-log" class="page active">
+  <div class="main">
+
+    <div class="card">
+      <div class="card-title" data-i18n="log.add">Add Measurement</div>
+      <div class="form-top">
+        <div class="date-wrap">
+          <label for="inp-date" data-i18n="log.date">Date</label>
+          <input type="date" id="inp-date">
+        </div>
+      </div>
+      <div class="sessions-grid">
+        <div class="session-box">
+          <div class="session-header morning">&#9728; <span data-i18n="log.morning">Morning</span></div>
+          <div class="readings">
+            <div class="reading-row">
+              <span class="rdg-lbl" data-i18n="log.rdg1">Rdg 1</span>
+              <div><label><span data-i18n="log.sys">Systolic</span> <span class="unit">mmHg</span></label><input type="number" id="m1s" placeholder="120" min="60" max="300" data-def="120"></div>
+              <div><label><span data-i18n="log.dia">Diastolic</span> <span class="unit">mmHg</span></label><input type="number" id="m1d" placeholder="80" min="30" max="200" data-def="80"></div>
+            </div>
+            <div class="reading-row">
+              <span class="rdg-lbl" data-i18n="log.rdg2">Rdg 2</span>
+              <div><label><span data-i18n="log.sys">Systolic</span> <span class="unit">mmHg</span></label><input type="number" id="m2s" placeholder="120" min="60" max="300" data-def="120"></div>
+              <div><label><span data-i18n="log.dia">Diastolic</span> <span class="unit">mmHg</span></label><input type="number" id="m2d" placeholder="80" min="30" max="200" data-def="80"></div>
+            </div>
+          </div>
+        </div>
+        <div class="session-box">
+          <div class="session-header evening">&#9790; <span data-i18n="log.evening">Evening</span></div>
+          <div class="readings">
+            <div class="reading-row">
+              <span class="rdg-lbl" data-i18n="log.rdg1">Rdg 1</span>
+              <div><label><span data-i18n="log.sys">Systolic</span> <span class="unit">mmHg</span></label><input type="number" id="e1s" placeholder="120" min="60" max="300" data-def="120"></div>
+              <div><label><span data-i18n="log.dia">Diastolic</span> <span class="unit">mmHg</span></label><input type="number" id="e1d" placeholder="80" min="30" max="200" data-def="80"></div>
+            </div>
+            <div class="reading-row">
+              <span class="rdg-lbl" data-i18n="log.rdg2">Rdg 2</span>
+              <div><label><span data-i18n="log.sys">Systolic</span> <span class="unit">mmHg</span></label><input type="number" id="e2s" placeholder="120" min="60" max="300" data-def="120"></div>
+              <div><label><span data-i18n="log.dia">Diastolic</span> <span class="unit">mmHg</span></label><input type="number" id="e2d" placeholder="80" min="30" max="200" data-def="80"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <button class="btn-save" onclick="saveEntry()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        <span data-i18n="log.save">Save Entry</span>
+      </button>
+    </div>
+
+    <div class="card" style="padding:1rem 1.5rem">
+      <div class="card-title" style="font-size:.8125rem;margin-bottom:.625rem" data-i18n="log.classif">BP Classification</div>
+      <div class="legend">
+        <span class="chip bp-normal"    data-i18n="log.normal"  >Normal &lt;120/&lt;80</span>
+        <span class="chip bp-elevated"  data-i18n="log.elevated">Elevated 120–129/&lt;80</span>
+        <span class="chip bp-stage1"    data-i18n="log.stage1"  >Stage 1  130–139/80–89</span>
+        <span class="chip bp-stage2"    data-i18n="log.stage2"  >Stage 2  ≥140/≥90</span>
+        <span class="chip bp-crisis"    data-i18n="log.crisis"  >Crisis &gt;180/&gt;120</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title" data-i18n="log.table">Measurement Log</div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th rowspan="2" style="text-align:left;min-width:110px" data-i18n="log.tbl_date">Date</th>
+              <th colspan="4" class="group-morning" data-i18n="log.tbl_morning">&#9728; Morning</th>
+              <th colspan="4" class="group-evening" data-i18n="log.tbl_evening">&#9790; Evening</th>
+              <th rowspan="2"></th>
+            </tr>
+            <tr>
+              <th>Rdg1<br>Sys</th><th>Rdg1<br>Dia</th>
+              <th>Rdg2<br>Sys</th><th>Rdg2<br>Dia</th>
+              <th>Rdg1<br>Sys</th><th>Rdg1<br>Dia</th>
+              <th>Rdg2<br>Sys</th><th>Rdg2<br>Dia</th>
+            </tr>
+          </thead>
+          <tbody id="log-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- STATS PAGE -->
+<div id="page-stats" class="page">
+  <div class="main">
+
+    <div class="card">
+      <div class="card-title" data-i18n="stats.trends">Trends</div>
+      <!-- Period selector (auto-generated when multiple periods detected) -->
+      <div class="period-bar" id="period-bar" style="display:none"></div>
+
+      <div class="filter-bar" id="filter-bar">
+        <button class="filter-btn" data-days="3"  data-i18n="stats.3d" >3 Days</button>
+        <button class="filter-btn" data-days="5"  data-i18n="stats.5d" >5 Days</button>
+        <button class="filter-btn active" data-days="10" data-i18n="stats.10d">10 Days</button>
+        <button class="filter-btn" data-days="14" data-i18n="stats.14d">14 Days</button>
+        <button class="filter-btn" data-days="30" data-i18n="stats.month">Month</button>
+        <button class="filter-btn" data-days="0"  data-i18n="stats.all" >All</button>
+      </div>
+
+      <!-- Measurement filters -->
+      <div class="mfilter-bar">
+        <span class="mfilter-lbl" data-i18n="stats.session">Session</span>
+        <button class="filter-btn active" data-mfilter="morning" onclick="toggleMFilter('morning')">&#9728; <span data-i18n="log.morning">Morning</span></button>
+        <button class="filter-btn active" data-mfilter="evening" onclick="toggleMFilter('evening')">&#9790; <span data-i18n="log.evening">Evening</span></button>
+        <div class="mfilter-sep"></div>
+        <span class="mfilter-lbl" data-i18n="stats.reading">Reading</span>
+        <button class="filter-btn active" data-mfilter="rdg1" onclick="toggleMFilter('rdg1')" data-i18n="stats.rdg1">Rdg 1</button>
+        <button class="filter-btn active" data-mfilter="rdg2" onclick="toggleMFilter('rdg2')" data-i18n="stats.rdg2">Rdg 2</button>
+      </div>
+
+      <!-- Goal lines + toggles -->
+      <div class="thresh-bar">
+        <div class="thresh-group">
+          <span class="thresh-metric" data-i18n="stats.sys_target">Sys target</span>
+          <div class="thresh-inputs">
+            <input class="thresh-inp" type="number" id="thresh-sys" placeholder="e.g. 130" min="50" max="300" oninput="onThreshChange('sys',this.value)">
+            <span class="thresh-unit">mmHg</span>
+          </div>
+        </div>
+        <div class="thresh-group">
+          <span class="thresh-metric" data-i18n="stats.dia_target">Dia target</span>
+          <div class="thresh-inputs">
+            <input class="thresh-inp" type="number" id="thresh-dia" placeholder="e.g. 80" min="30" max="200" oninput="onThreshChange('dia',this.value)">
+            <span class="thresh-unit">mmHg</span>
+          </div>
+        </div>
+        <div class="thresh-group" style="margin-left:auto;gap:.375rem">
+          <button class="filter-btn" id="thresh-btn" onclick="toggleThresh()"><span data-i18n="stats.show_targets">Targets</span></button>
+          <button class="filter-btn" id="zones-btn"  onclick="toggleZones()"><span data-i18n="stats.risk_zones">⬤ Risk zones</span></button>
+        </div>
+      </div>
+
+      <div class="stat-grid" id="stat-grid"></div>
+      <div class="chart-legend">
+        <div class="chart-legend-item"><div class="dot" style="background:#3b82f6"></div><span data-i18n="stats.sys">Systolic</span></div>
+        <div class="chart-legend-item"><div class="dot" style="background:#10b981"></div><span data-i18n="stats.dia">Diastolic</span></div>
+        <div class="chart-legend-item"><span style="display:inline-block;width:20px;border-top:2px dashed #f59e0b;vertical-align:middle;margin-right:2px"></span><span data-i18n="stats.target">Target</span></div>
+      </div>
+      <div class="chart-outer" id="chart-outer">
+        <div class="chart-tooltip" id="chart-tooltip"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title" data-i18n="stats.me_title">Morning vs Evening (period averages)</div>
+      <div class="me-grid" id="me-grid"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- SETTINGS PAGE -->
+<div id="page-settings" class="page">
+  <div class="main" style="max-width:600px">
+    <div class="card">
+      <p class="setting-section-title" data-i18n="set.appearance">Appearance</p>
+      <div class="setting-row">
+        <div>
+          <div class="setting-label" data-i18n="set.dark_mode">Dark mode</div>
+          <div class="setting-desc"  data-i18n="set.dark_desc">Switch to a darker color scheme</div>
+        </div>
+        <div class="setting-right">
+          <label class="toggle">
+            <input type="checkbox" id="dark-toggle" onchange="setTheme(this.checked?'dark':'light')">
+            <span class="toggle-track"></span>
+            <span class="toggle-thumb"></span>
+          </label>
+        </div>
+      </div>
+      <div class="setting-row">
+        <div>
+          <div class="setting-label" data-i18n="set.lang">Language</div>
+          <div class="setting-desc"  data-i18n="set.lang_desc">Switch interface language</div>
+        </div>
+        <div class="setting-right">
+          <div style="display:flex;gap:.375rem">
+            <button class="filter-btn active" data-lang-btn="en" onclick="setLang('en')">English</button>
+            <button class="filter-btn"        data-lang-btn="de" onclick="setLang('de')">Deutsch</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <p class="setting-section-title" data-i18n="set.stats_sec">Statistics</p>
+      <div class="setting-row">
+        <div>
+          <div class="setting-label" data-i18n="set.gap">Period gap threshold</div>
+          <div class="setting-desc"  data-i18n="set.gap_desc">Days of inactivity before starting a new measurement period</div>
+        </div>
+        <div class="setting-right">
+          <select id="gap-select" onchange="setGapThreshold(this.value)" style="width:90px">
+            <option value="2">2 days</option>
+            <option value="3" selected>3 days</option>
+            <option value="5">5 days</option>
+            <option value="7">7 days</option>
+            <option value="14">14 days</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <p class="setting-section-title" data-i18n="set.data">Data</p>
+      <div class="setting-row">
+        <div>
+          <div class="setting-label" data-i18n="set.export">Export</div>
+          <div class="setting-desc"  data-i18n="set.export_desc">Download all entries as a JSON file</div>
+        </div>
+        <div class="setting-right">
+          <button class="btn btn-outline" onclick="exportData()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <span data-i18n="set.export_btn">Export JSON</span>
+          </button>
+        </div>
+      </div>
+      <div class="setting-row" style="align-items:flex-start;padding-top:1rem">
+        <div>
+          <div class="setting-label" data-i18n="set.import">Import</div>
+          <div class="setting-desc" style="margin-bottom:.625rem" data-i18n="set.import_desc">Choose how to handle existing data:</div>
+          <div style="display:flex;flex-direction:column;gap:.375rem;font-size:.8125rem">
+            <label style="display:flex;align-items:flex-start;gap:.5rem;cursor:pointer;text-transform:none;letter-spacing:0;font-weight:400;color:var(--text)">
+              <input type="radio" name="import-mode" value="merge" checked style="width:auto;margin-top:.15rem;accent-color:var(--primary)">
+              <span><strong style="font-weight:600" data-i18n="set.merge">Merge</strong> <span data-i18n="set.merge_desc">— update matching dates, insert new ones</span></span>
+            </label>
+            <label style="display:flex;align-items:flex-start;gap:.5rem;cursor:pointer;text-transform:none;letter-spacing:0;font-weight:400;color:var(--text)">
+              <input type="radio" name="import-mode" value="replace" style="width:auto;margin-top:.15rem;accent-color:var(--primary)">
+              <span><strong style="font-weight:600" data-i18n="set.replace">Replace</strong> <span data-i18n="set.replace_desc">— delete all existing data, then insert</span></span>
+            </label>
+          </div>
+        </div>
+        <div class="setting-right" style="margin-top:.125rem">
+          <button class="btn btn-outline" onclick="document.getElementById('import-file').click()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10" transform="rotate(180 12 12)"/><line x1="12" y1="15" x2="12" y2="3" transform="rotate(180 12 12)"/></svg>
+            <span data-i18n="set.choose_file">Choose file…</span>
+          </button>
+          <input type="file" id="import-file" accept=".json,application/json" style="display:none" onchange="importData(this)">
+        </div>
+      </div>
+      <div id="import-result" style="font-size:.8125rem;padding:.375rem 0 .125rem;color:var(--muted);display:none"></div>
+    </div>
+
+    <div class="card">
+      <p class="setting-section-title" data-i18n="set.test_sec">Test Data</p>
+      <div class="setting-row">
+        <div>
+          <div class="setting-label" data-i18n="test.hero">Generate realistic test data to explore the app, or clean up entries you no longer need.</div>
+        </div>
+        <div class="setting-right">
+          <button class="btn btn-outline" onclick="document.getElementById('test-dialog').showModal();refreshTestDialog()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+            <span data-i18n="test.open">Open Test Data Manager</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <p class="setting-section-title" data-i18n="set.about">About</p>
+      <div class="setting-row">
+        <div>
+          <div class="setting-label" data-i18n="set.storage">Storage</div>
+          <div class="setting-desc"  data-i18n="set.storage_desc">All data lives in your browser's localStorage. Nothing leaves your device unless you export.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TEST DATA DIALOG -->
+<dialog id="test-dialog">
+  <div class="dlg-header">
+    <span class="dlg-title" data-i18n="test.dlg_title">🔬 Test Data Manager</span>
+    <button class="dlg-close" onclick="document.getElementById('test-dialog').close()">&#10005;</button>
+  </div>
+  <div class="dlg-body">
+
+    <!-- ADD SECTION -->
+    <div>
+      <div class="dlg-section-title" data-i18n="test.add_sec">Add test data</div>
+      <div class="scenario-grid">
+        <label class="scenario-option">
+          <input type="radio" name="scenario" value="normal" checked>
+          <span class="scenario-label"><strong data-i18n="test.sc_normal">Normal</strong><span data-i18n="test.sc_normal_d">~115/75 · stable</span></span>
+        </label>
+        <label class="scenario-option">
+          <input type="radio" name="scenario" value="stage1">
+          <span class="scenario-label"><strong data-i18n="test.sc_stage1">Stage 1 HT</strong><span data-i18n="test.sc_stage1_d">~134/85 · elevated</span></span>
+        </label>
+        <label class="scenario-option">
+          <input type="radio" name="scenario" value="improving">
+          <span class="scenario-label"><strong data-i18n="test.sc_improving">Improving</strong><span data-i18n="test.sc_improving_d">150/95 → 118/76</span></span>
+        </label>
+        <label class="scenario-option">
+          <input type="radio" name="scenario" value="worsening">
+          <span class="scenario-label"><strong data-i18n="test.sc_worsening">Worsening</strong><span data-i18n="test.sc_worsening_d">115/75 → 150/95</span></span>
+        </label>
+        <label class="scenario-option" style="grid-column:1/-1">
+          <input type="radio" name="scenario" value="mixed">
+          <span class="scenario-label"><strong data-i18n="test.sc_mixed">Mixed / Realistic</strong><span data-i18n="test.sc_mixed_d">Variable across all categories</span></span>
+        </label>
+      </div>
+
+      <div class="days-row" style="margin-top:.875rem">
+        <label style="font-size:.8125rem;font-weight:500;color:var(--muted)" data-i18n="test.days_per">Days per period:</label>
+        <select id="test-days">
+          <option value="7">7 days</option>
+          <option value="14">14 days</option>
+          <option value="30" selected>30 days</option>
+          <option value="60">60 days</option>
+          <option value="90">90 days</option>
+        </select>
+      </div>
+      <label class="days-row" style="margin-top:.625rem;cursor:pointer;gap:.5rem">
+        <input type="checkbox" id="test-gap" style="width:auto;accent-color:var(--primary)">
+        <span style="font-size:.8125rem;color:var(--text)" data-i18n="test.gap_opt">Split into 2 periods with ~45-day gap</span>
+      </label>
+      <p class="dlg-note" style="margin-top:.75rem" data-i18n="test.note">Entries go back from today. Dates that already have data will be overwritten.</p>
+      <button class="btn btn-primary-sm" style="margin-top:.875rem;width:100%" onclick="addTestData()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        <span data-i18n="test.generate">Generate &amp; Add</span>
+      </button>
+    </div>
+
+    <hr class="dlg-divider">
+
+    <!-- DELETE SECTION -->
+    <div>
+      <div class="dlg-section-title" data-i18n="test.del_sec">Delete data</div>
+      <p class="test-count" id="dlg-count"></p>
+      <div class="delete-row">
+        <button class="btn btn-danger-outline" onclick="deleteTestEntries()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+          <span data-i18n="test.del_test">Delete test entries</span> (<span id="dlg-test-count">0</span>)
+        </button>
+        <button class="btn btn-danger" onclick="deleteAllEntries()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+          <span data-i18n="test.del_all">Delete all</span> (<span id="dlg-all-count">0</span>)
+        </button>
+      </div>
+    </div>
+
+  </div>
+</dialog>
+
+<!-- IMPORT CONFIRM DIALOG -->
+<dialog id="import-confirm-dialog">
+  <div class="dlg-header">
+    <span class="dlg-title" id="icd-title">Confirm import</span>
+    <button class="dlg-close" onclick="cancelImport()">&#10005;</button>
+  </div>
+  <div class="dlg-body" style="gap:.875rem">
+    <p id="icd-body" style="font-size:.9375rem;line-height:1.6;color:var(--text-2)"></p>
+    <p id="icd-warning" style="font-size:.8125rem;background:var(--c-s2);color:var(--c-s2-t);border-radius:var(--radius-s);padding:.5rem .75rem;display:none"></p>
+    <div style="display:flex;gap:.625rem;justify-content:flex-end">
+      <button class="btn btn-outline" onclick="cancelImport()" data-i18n="icd.cancel">Cancel</button>
+      <button class="btn" id="icd-confirm-btn" onclick="confirmImport()">Import</button>
+    </div>
+  </div>
+</dialog>
+
+<div id="toast"></div>
+
+<script>
+// ── Translations ─────────────────────────────────────────────────────────────
+const TRANSLATIONS = {
+  en: {
+    'nav.log':'Log','nav.stats':'Statistics','nav.test':'Test','nav.settings':'Settings',
+    'log.add':'Add Measurement','log.date':'Date',
+    'log.morning':'Morning','log.evening':'Evening',
+    'log.rdg1':'Rdg 1','log.rdg2':'Rdg 2',
+    'log.sys':'Systolic','log.dia':'Diastolic',
+    'log.save':'Save Entry','log.classif':'BP Classification',
+    'log.normal':'Normal <120/<80','log.elevated':'Elevated 120–129/<80',
+    'log.stage1':'Stage 1  130–139/80–89','log.stage2':'Stage 2  ≥140/≥90','log.crisis':'Crisis >180/>120',
+    'log.table':'Measurement Log','log.tbl_date':'Date',
+    'log.tbl_morning':'☀ Morning','log.tbl_evening':'☽ Evening','log.empty':'No entries yet.',
+    'stats.trends':'Trends',
+    'stats.3d':'3 Days','stats.5d':'5 Days','stats.10d':'10 Days','stats.14d':'14 Days','stats.month':'Month','stats.all':'All',
+    'stats.session':'Session','stats.reading':'Reading','stats.rdg1':'Rdg 1','stats.rdg2':'Rdg 2',
+    'stats.sys_target':'Sys target','stats.dia_target':'Dia target',
+    'stats.show_targets':'Targets','stats.risk_zones':'⬤ Risk zones',
+    'stats.sys':'Systolic','stats.dia':'Diastolic','stats.target':'Target',
+    'stats.me_title':'Morning vs Evening (period averages)',
+    'stats.morning_avg':'☀ Morning Average','stats.evening_avg':'☽ Evening Average',
+    'stats.avg_sys':'Avg Systolic','stats.avg_dia':'Avg Diastolic',
+    'stats.highest':'Highest','stats.lowest':'Lowest','stats.days':'Days logged',
+    'stats.no_data':'No data for this period.',
+    'stats.all_periods':'All','stats.period_lbl':'Period',
+    'set.appearance':'Appearance','set.dark_mode':'Dark mode','set.dark_desc':'Switch to a darker color scheme',
+    'set.stats_sec':'Statistics','set.gap':'Period gap threshold',
+    'set.gap_desc':'Days of inactivity before starting a new measurement period',
+    'set.lang':'Language','set.lang_desc':'Switch interface language',
+    'set.data':'Data','set.export':'Export','set.export_desc':'Download all entries as a JSON file','set.export_btn':'Export JSON',
+    'set.import':'Import','set.import_desc':'Choose how to handle existing data:',
+    'set.merge':'Merge','set.merge_desc':'— update matching dates, insert new ones',
+    'set.replace':'Replace','set.replace_desc':'— delete all existing data, then insert',
+    'set.choose_file':'Choose file…',
+    'set.test_sec':'Test Data','set.about':'About','set.storage':'Storage',
+    'set.storage_desc':"All data lives in your browser's localStorage. Nothing leaves your device unless you export.",
+    'gap.2':'2 days','gap.3':'3 days','gap.5':'5 days','gap.7':'7 days','gap.14':'14 days',
+    'test.hero':'Generate realistic test data to explore the app, or clean up entries you no longer need.',
+    'test.open':'Open Test Data Manager','test.dlg_title':'🔬 Test Data Manager',
+    'test.add_sec':'Add test data',
+    'test.sc_normal':'Normal','test.sc_normal_d':'~115/75 · stable',
+    'test.sc_stage1':'Stage 1 HT','test.sc_stage1_d':'~134/85 · elevated',
+    'test.sc_improving':'Improving','test.sc_improving_d':'150/95 → 118/76',
+    'test.sc_worsening':'Worsening','test.sc_worsening_d':'115/75 → 150/95',
+    'test.sc_mixed':'Mixed / Realistic','test.sc_mixed_d':'Variable across all categories',
+    'test.days_per':'Days per period:',
+    'test.days_7':'7 days','test.days_14':'14 days','test.days_30':'30 days','test.days_60':'60 days','test.days_90':'90 days',
+    'test.gap_opt':'Split into 2 periods with ~45-day gap',
+    'test.note':'Entries go back from today. Dates that already have data will be overwritten.',
+    'test.generate':'Generate & Add','test.del_sec':'Delete data',
+    'test.del_test':'Delete test entries','test.del_all':'Delete all',
+    'icd.cancel':'Cancel',
+    'toast.saved':'Entry saved.','toast.updated':'Entry updated.','toast.deleted':'Deleted.',
+    'toast.no_date':'Please select a date.','toast.no_val':'Enter at least one value.',
+    'toast.no_test':'No test entries to delete.','toast.nothing':'Nothing to delete.','toast.all_del':'All entries deleted.',
+  },
+  de: {
+    'nav.log':'Protokoll','nav.stats':'Statistik','nav.test':'Test','nav.settings':'Einstellungen',
+    'log.add':'Messung erfassen','log.date':'Datum',
+    'log.morning':'Morgen','log.evening':'Abend',
+    'log.rdg1':'Mss. 1','log.rdg2':'Mss. 2',
+    'log.sys':'Systolisch','log.dia':'Diastolisch',
+    'log.save':'Eintrag speichern','log.classif':'BD-Klassifikation',
+    'log.normal':'Normal <120/<80','log.elevated':'Erhöht 120–129/<80',
+    'log.stage1':'Stufe 1  130–139/80–89','log.stage2':'Stufe 2  ≥140/≥90','log.crisis':'Krise >180/>120',
+    'log.table':'Messprotokoll','log.tbl_date':'Datum',
+    'log.tbl_morning':'☀ Morgen','log.tbl_evening':'☽ Abend','log.empty':'Noch keine Einträge.',
+    'stats.trends':'Verlauf',
+    'stats.3d':'3 Tage','stats.5d':'5 Tage','stats.10d':'10 Tage','stats.14d':'14 Tage','stats.month':'Monat','stats.all':'Alle',
+    'stats.session':'Sitzung','stats.reading':'Messung','stats.rdg1':'M. 1','stats.rdg2':'M. 2',
+    'stats.sys_target':'Sys-Ziel','stats.dia_target':'Dia-Ziel',
+    'stats.show_targets':'Ziellinien','stats.risk_zones':'⬤ Risikobereiche',
+    'stats.sys':'Systolisch','stats.dia':'Diastolisch','stats.target':'Ziel',
+    'stats.me_title':'Morgen vs. Abend (Periodendurchschnitt)',
+    'stats.morning_avg':'☀ Morgen Ø','stats.evening_avg':'☽ Abend Ø',
+    'stats.avg_sys':'Ø Systolisch','stats.avg_dia':'Ø Diastolisch',
+    'stats.highest':'Höchstwert','stats.lowest':'Tiefstwert','stats.days':'Tage erfasst',
+    'stats.no_data':'Keine Daten für diesen Zeitraum.',
+    'stats.all_periods':'Alle','stats.period_lbl':'Periode',
+    'set.appearance':'Erscheinungsbild','set.dark_mode':'Dunkelmodus','set.dark_desc':'Zu einem dunkleren Farbschema wechseln',
+    'set.stats_sec':'Statistik','set.gap':'Periodenpausen-Schwellenwert',
+    'set.gap_desc':'Tage ohne Messungen, bevor eine neue Periode beginnt',
+    'set.lang':'Sprache','set.lang_desc':'Sprache der Benutzeroberfläche wechseln',
+    'set.data':'Daten','set.export':'Export','set.export_desc':'Alle Einträge als JSON-Datei herunterladen','set.export_btn':'JSON exportieren',
+    'set.import':'Import','set.import_desc':'Wählen Sie, wie mit vorhandenen Daten umgegangen werden soll:',
+    'set.merge':'Zusammenführen','set.merge_desc':'— übereinstimmende Daten aktualisieren, neue hinzufügen',
+    'set.replace':'Ersetzen','set.replace_desc':'— alle vorhandenen Daten löschen und ersetzen',
+    'set.choose_file':'Datei auswählen…',
+    'set.test_sec':'Testdaten','set.about':'Über die App','set.storage':'Speicher',
+    'set.storage_desc':'Alle Daten werden lokal im Browser gespeichert. Nichts verlässt Ihr Gerät außer beim Export.',
+    'gap.2':'2 Tage','gap.3':'3 Tage','gap.5':'5 Tage','gap.7':'7 Tage','gap.14':'14 Tage',
+    'test.hero':'Realistische Testdaten generieren oder nicht mehr benötigte Einträge löschen.',
+    'test.open':'Testdaten-Manager öffnen','test.dlg_title':'🔬 Testdaten-Manager',
+    'test.add_sec':'Testdaten hinzufügen',
+    'test.sc_normal':'Normal','test.sc_normal_d':'~115/75 · stabil',
+    'test.sc_stage1':'Stufe 1 HT','test.sc_stage1_d':'~134/85 · erhöht',
+    'test.sc_improving':'Verbessernd','test.sc_improving_d':'150/95 → 118/76',
+    'test.sc_worsening':'Verschlechternd','test.sc_worsening_d':'115/75 → 150/95',
+    'test.sc_mixed':'Gemischt / Realistisch','test.sc_mixed_d':'Variabel über alle Kategorien',
+    'test.days_per':'Tage pro Periode:',
+    'test.days_7':'7 Tage','test.days_14':'14 Tage','test.days_30':'30 Tage','test.days_60':'60 Tage','test.days_90':'90 Tage',
+    'test.gap_opt':'In 2 Perioden mit ~45-Tage-Lücke aufteilen',
+    'test.note':'Einträge gehen von heute zurück. Bereits vorhandene Daten werden überschrieben.',
+    'test.generate':'Generieren & Hinzufügen','test.del_sec':'Daten löschen',
+    'test.del_test':'Testeinträge löschen','test.del_all':'Alle löschen',
+    'icd.cancel':'Abbrechen',
+    'toast.saved':'Eintrag gespeichert.','toast.updated':'Eintrag aktualisiert.','toast.deleted':'Gelöscht.',
+    'toast.no_date':'Bitte ein Datum auswählen.','toast.no_val':'Mindestens einen Wert eingeben.',
+    'toast.no_test':'Keine Testeinträge zum Löschen.','toast.nothing':'Nichts zu löschen.','toast.all_del':'Alle Einträge gelöscht.',
+  }
+};
+
+let currentLang = localStorage.getItem('bp-lang') || 'en';
+document.documentElement.lang = currentLang;
+
+function t(key) {
+  return (TRANSLATIONS[currentLang] || TRANSLATIONS.en)[key] ?? TRANSLATIONS.en[key] ?? key;
+}
+
+function setLang(lang) {
+  currentLang = lang;
+  localStorage.setItem('bp-lang', lang);
+  document.documentElement.lang = lang;
+  applyLang();
+  renderLog();
+  if (document.getElementById('page-stats').classList.contains('active')) renderStats();
+}
+
+function applyLang() {
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
+  document.querySelectorAll('[data-i18n-ph]').forEach(el => { el.placeholder = t(el.dataset.i18nPh); });
+  // Gap select options
+  const gs = document.getElementById('gap-select');
+  if (gs) gs.querySelectorAll('option').forEach(o => { o.textContent = t('gap.' + o.value); });
+  // Test days options
+  const td = document.getElementById('test-days');
+  if (td) td.querySelectorAll('option').forEach(o => { o.textContent = t('test.days_' + o.value); });
+  // Language buttons
+  document.querySelectorAll('[data-lang-btn]').forEach(b => b.classList.toggle('active', b.dataset.langBtn === currentLang));
+}
+
+// ── Storage ──────────────────────────────────────────────────────────────────
+const KEY = 'bp-v2';
+let entries = JSON.parse(localStorage.getItem(KEY) || '[]');
+function persist() { localStorage.setItem(KEY, JSON.stringify(entries)); }
+
+// ── Export / Import ──────────────────────────────────────────────────────────
+function exportData() {
+  const payload = JSON.stringify(entries, null, 2);
+  const blob = new Blob([payload], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const date = new Date().toISOString().slice(0, 10);
+  a.href = url; a.download = `bp-export-${date}.json`;
+  a.click(); URL.revokeObjectURL(url);
+}
+
+let _pendingImport = null;
+
+function importData(input) {
+  const file = input.files[0]; if (!file) return;
+  const mode = document.querySelector('input[name="import-mode"]:checked').value;
+  const result = document.getElementById('import-result');
+  result.style.display = 'none';
+  const reader = new FileReader();
+  reader.onload = e => {
+    let imported;
+    try { imported = JSON.parse(e.target.result); } catch {
+      result.style.display = 'block'; result.style.color = '#ef4444';
+      result.textContent = 'Invalid JSON file.';
+      input.value = ''; return;
+    }
+    if (!Array.isArray(imported)) {
+      result.style.display = 'block'; result.style.color = '#ef4444';
+      result.textContent = 'Expected a JSON array of entries.';
+      input.value = ''; return;
+    }
+    const BP_FIELDS = ['m1s','m1d','m2s','m2d','e1s','e1d','e2s','e2d'];
+    const valid = imported
+      .filter(r => r.date && typeof r.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(r.date))
+      .map(r => {
+        const clean = { id: crypto.randomUUID(), date: r.date };
+        for (const f of BP_FIELDS) {
+          const n = parseInt(r[f], 10);
+          if (!isNaN(n) && n >= 30 && n <= 350) clean[f] = n;
+        }
+        return clean;
+      });
+    if (!valid.length) {
+      result.style.display = 'block'; result.style.color = '#ef4444';
+      result.textContent = 'No valid entries found in file.';
+      input.value = ''; return;
+    }
+
+    // pre-calculate impact for the dialog
+    let willAdd = 0, willUpdate = 0;
+    for (const rec of valid) {
+      entries.findIndex(ex => ex.date === rec.date) === -1 ? willAdd++ : willUpdate++;
+    }
+
+    _pendingImport = { valid, mode, input };
+
+    const dlg = document.getElementById('import-confirm-dialog');
+    const title = document.getElementById('icd-title');
+    const body  = document.getElementById('icd-body');
+    const warn  = document.getElementById('icd-warning');
+    const btn   = document.getElementById('icd-confirm-btn');
+
+    if (mode === 'replace') {
+      title.textContent = 'Replace all data?';
+      body.textContent  = `The file contains ${valid.length} entr${valid.length === 1 ? 'y' : 'ies'}. All ${entries.length} existing entr${entries.length === 1 ? 'y' : 'ies'} will be permanently deleted and replaced.`;
+      warn.style.display = 'block';
+      warn.textContent   = '⚠ This cannot be undone. Consider exporting your current data first.';
+      btn.className = 'btn btn-danger';
+      btn.textContent = 'Delete & replace';
+    } else {
+      title.textContent = 'Merge into existing data?';
+      body.textContent  = `The file contains ${valid.length} entr${valid.length === 1 ? 'y' : 'ies'}: ${willAdd} new date${willAdd === 1 ? '' : 's'} will be added, ${willUpdate} existing date${willUpdate === 1 ? '' : 's'} will be updated.`;
+      warn.style.display = 'none';
+      btn.className = 'btn btn-primary-sm';
+      btn.textContent = 'Merge';
+    }
+    dlg.showModal();
+  };
+  reader.readAsText(file);
+}
+
+function confirmImport() {
+  document.getElementById('import-confirm-dialog').close();
+  if (!_pendingImport) return;
+  const { valid, mode, input } = _pendingImport;
+  _pendingImport = null;
+  const result = document.getElementById('import-result');
+  let added = 0, updated = 0;
+  if (mode === 'replace') {
+    entries = valid.map(r => ({ id: r.id || Date.now() + Math.random(), ...r }));
+    added = entries.length;
+  } else {
+    for (const rec of valid) {
+      const idx = entries.findIndex(ex => ex.date === rec.date);
+      if (idx === -1) {
+        entries.push({ id: rec.id || Date.now() + Math.random(), ...rec });
+        added++;
+      } else {
+        const merged = { ...entries[idx] };
+        for (const [k, v] of Object.entries(rec)) { if (v != null) merged[k] = v; }
+        entries[idx] = merged;
+        updated++;
+      }
+    }
+  }
+  persist(); renderLog();
+  if (document.getElementById('page-stats').classList.contains('active')) renderStats();
+  result.style.display = 'block'; result.style.color = 'var(--muted)';
+  result.textContent = mode === 'replace'
+    ? `Replaced — ${added} entries loaded.`
+    : `Merged — ${added} added, ${updated} updated.`;
+  input.value = '';
+  showToast(mode === 'replace' ? `Replaced: ${added} entries` : `Merged: ${added} added, ${updated} updated`);
+}
+
+function cancelImport() {
+  document.getElementById('import-confirm-dialog').close();
+  if (_pendingImport) { _pendingImport.input.value = ''; _pendingImport = null; }
+}
+
+// ── Theme ─────────────────────────────────────────────────────────────────────
+function setTheme(mode) {
+  document.documentElement.dataset.theme = mode;
+  localStorage.setItem('bp-theme', mode);
+  document.getElementById('dark-toggle').checked = mode === 'dark';
+  if (document.getElementById('page-stats').classList.contains('active')) renderStats();
+}
+(function syncTheme() {
+  const saved = localStorage.getItem('bp-theme') || 'light';
+  document.documentElement.dataset.theme = saved;
+})();
+
+// ── Gap threshold ─────────────────────────────────────────────────────────────
+let gapThreshold = Math.min(Math.max(parseInt(localStorage.getItem('bp-gap')) || 3, 2), 30);
+function setGapThreshold(val) {
+  gapThreshold = parseInt(val);
+  localStorage.setItem('bp-gap', val);
+  if (document.getElementById('page-stats').classList.contains('active')) renderStats();
+}
+
+// ── Nav ──────────────────────────────────────────────────────────────────────
+function showPage(id, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  btn.classList.add('active');
+  if (id === 'stats') renderStats();
+  if (id === 'settings') syncSettingsUI();
+}
+function syncSettingsUI() {
+  const mode = localStorage.getItem('bp-theme') || 'light';
+  document.getElementById('dark-toggle').checked = mode === 'dark';
+  const gap = localStorage.getItem('bp-gap') || '3';
+  document.getElementById('gap-select').value = gap;
+  refreshTestDialog();
+  applyLang();
+}
+
+// ── BP helpers ───────────────────────────────────────────────────────────────
+function classify(sys, dia) {
+  if (!sys || !dia) return null;
+  if (sys > 180 || dia > 120) return 'crisis';
+  if (sys >= 140 || dia >= 90)  return 'stage2';
+  if (sys >= 130 || dia >= 80)  return 'stage1';
+  if (sys >= 120 && dia < 80)   return 'elevated';
+  return 'normal';
+}
+
+// Safe HTML attribute escaping used throughout the render functions
+function escAttr(s) {
+  return String(s).replace(/[&"<>]/g, c => ({'&':'&amp;','"':'&quot;','<':'&lt;','>':'&gt;'}[c]));
+}
+
+function bpChip(val, sys, dia) {
+  if (val == null) return '<span style="color:var(--subtle)">—</span>';
+  const n = Number(val);
+  if (isNaN(n)) return '<span style="color:var(--subtle)">—</span>';
+  const c = classify(sys, dia);
+  return `<span class="bp-chip${c ? ' bp-'+c : ''}">${n}</span>`;
+}
+
+function avg(vals) {
+  const v = vals.filter(x => x != null && !isNaN(x));
+  return v.length ? Math.round(v.reduce((s, x) => s + x, 0) / v.length) : null;
+}
+
+function fmtDate(iso) {
+  const d = new Date(iso + 'T00:00:00');
+  return {
+    main: d.toLocaleDateString(currentLang === 'de' ? 'de-DE' : 'en-US', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+    sub:  d.toLocaleDateString(currentLang === 'de' ? 'de-DE' : 'en-US', { weekday: 'short' })
+  };
+}
+
+function numVal(id) { const n = parseInt(document.getElementById(id).value); return isNaN(n) ? null : n; }
+
+// ── Log ───────────────────────────────────────────────────────────────────────
+function renderLog() {
+  const tbody = document.getElementById('log-body');
+  if (!entries.length) {
+    tbody.innerHTML = `<tr><td colspan="10"><div class="empty-state"><div class="icon">&#9829;</div><div>${t('log.empty')}</div></div></td></tr>`;
+    return;
+  }
+  const sorted = [...entries].sort((a, b) => b.date.localeCompare(a.date));
+  tbody.innerHTML = sorted.map(e => {
+    const dt = fmtDate(e.date);
+    return `<tr>
+      <td class="date-cell"><div class="date-main">${dt.main}</div><div class="date-sub">${dt.sub}</div></td>
+      <td>${bpChip(e.m1s, e.m1s, e.m1d)}</td><td>${bpChip(e.m1d, e.m1s, e.m1d)}</td>
+      <td>${bpChip(e.m2s, e.m2s, e.m2d)}</td><td>${bpChip(e.m2d, e.m2s, e.m2d)}</td>
+      <td>${bpChip(e.e1s, e.e1s, e.e1d)}</td><td>${bpChip(e.e1d, e.e1s, e.e1d)}</td>
+      <td>${bpChip(e.e2s, e.e2s, e.e2d)}</td><td>${bpChip(e.e2d, e.e2s, e.e2d)}</td>
+      <td><button class="btn-del" data-del-id="${escAttr(e.id)}" title="Delete">&#10005;</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function saveEntry() {
+  const date = document.getElementById('inp-date').value;
+  if (!date) { showToast(t('toast.no_date')); return; }
+  const fields = ['m1s','m1d','m2s','m2d','e1s','e1d','e2s','e2d'];
+  const vals = Object.fromEntries(fields.map(f => [f, numVal(f)]));
+  if (Object.values(vals).every(v => v == null)) { showToast(t('toast.no_val')); return; }
+
+  const idx = entries.findIndex(e => e.date === date);
+  if (idx >= 0) {
+    // Merge: only overwrite fields that have a new value — existing readings are preserved
+    const merged = { ...entries[idx] };
+    for (const [k, v] of Object.entries(vals)) { if (v != null) merged[k] = v; }
+    entries[idx] = merged;
+    showToast(t('toast.updated'));
+  } else {
+    entries.push({ id: crypto.randomUUID(), date, ...vals });
+    showToast(t('toast.saved'));
+  }
+
+  persist(); renderLog();
+  fields.forEach(id => document.getElementById(id).value = '');
+}
+
+function deleteEntry(id) {
+  entries = entries.filter(e => e.id !== id);
+  persist(); renderLog(); showToast(t('toast.deleted'));
+}
+
+// ── Stats ─────────────────────────────────────────────────────────────────────
+let activeDays = 10;
+
+// Time-range filter (only buttons with data-days attribute)
+document.querySelectorAll('[data-days]').forEach(btn =>
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('[data-days]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    activeDays = parseInt(btn.dataset.days);
+    renderStats();
+  })
+);
+
+// ── Measurement periods ───────────────────────────────────────────────────────
+let activePeriod = -1; // -1 = all periods
+
+function detectPeriods(src) {
+  const sorted = (src || entries).slice().sort((a,b) => a.date.localeCompare(b.date));
+  if (!sorted.length) return [];
+  const GAP = gapThreshold;
+  const out = []; let cur = [sorted[0]];
+  for (let i = 1; i < sorted.length; i++) {
+    const gap = (+new Date(sorted[i].date+'T00:00:00') - +new Date(sorted[i-1].date+'T00:00:00')) / 86400000;
+    if (gap > GAP) { out.push(cur); cur = [sorted[i]]; } else cur.push(sorted[i]);
+  }
+  out.push(cur);
+  return out;
+}
+
+function periodLabel(p) {
+  const f = e => new Date(e.date+'T00:00:00').toLocaleDateString(currentLang==='de'?'de-DE':'en-US',{month:'short',day:'numeric'});
+  const yr = e => new Date(e.date+'T00:00:00').getFullYear();
+  if (p.length === 1) return f(p[0]);
+  const showYear = yr(p[0]) !== new Date().getFullYear();
+  return `${f(p[0])} – ${f(p[p.length-1])}${showYear ? ' '+yr(p[0]) : ''}`;
+}
+
+function setPeriod(idx) { activePeriod = idx; renderStats(); }
+
+function renderPeriodBar() {
+  const periods = detectPeriods();
+  const bar = document.getElementById('period-bar');
+  if (periods.length <= 1) { bar.style.display = 'none'; return; }
+  bar.style.display = 'flex';
+  bar.innerHTML =
+    `<span class="mfilter-lbl">${t('stats.period_lbl')}</span>` +
+    `<button class="filter-btn${activePeriod === -1 ? ' active' : ''}" onclick="setPeriod(-1)">${t('stats.all_periods')}</button>` +
+    periods.map((p,i) =>
+      `<button class="filter-btn${activePeriod === i ? ' active' : ''}" onclick="setPeriod(${i})">${periodLabel(p)}</button>`
+    ).join('');
+}
+
+// Measurement filters
+let mFilters = { morning: true, evening: true, rdg1: true, rdg2: true };
+
+function toggleMFilter(key) {
+  const next = { ...mFilters, [key]: !mFilters[key] };
+  if (!next.morning && !next.evening) return; // keep at least one session
+  if (!next.rdg1   && !next.rdg2)    return; // keep at least one reading
+  mFilters = next;
+  document.querySelector(`[data-mfilter="${key}"]`).classList.toggle('active', mFilters[key]);
+  renderStats();
+}
+
+// Goal / threshold lines
+const THRESH_KEY = 'bp-thresh';
+let thresholds = JSON.parse(localStorage.getItem(THRESH_KEY) || '{}');
+// migrate old {sysLow,sysHigh,diaLow,diaHigh} → {sys,dia}
+if (thresholds.sysHigh != null && thresholds.sys == null) thresholds.sys = thresholds.sysHigh;
+if (thresholds.diaHigh != null && thresholds.dia == null) thresholds.dia = thresholds.diaHigh;
+
+let showZones  = localStorage.getItem('bp-zones')       !== 'false';
+let showThresh = localStorage.getItem('bp-thresh-show') !== 'false';
+
+function toggleThresh() {
+  showThresh = !showThresh;
+  localStorage.setItem('bp-thresh-show', showThresh);
+  document.getElementById('thresh-btn').classList.toggle('active', showThresh);
+  const outer = document.getElementById('chart-outer');
+  if (outer.querySelector('svg')) renderStats();
+}
+
+function onThreshChange(key, val) {
+  thresholds[key] = val !== '' ? parseInt(val) : null;
+  localStorage.setItem(THRESH_KEY, JSON.stringify(thresholds));
+  const outer = document.getElementById('chart-outer');
+  if (outer.querySelector('svg')) renderStats();
+}
+
+function toggleZones() {
+  showZones = !showZones;
+  localStorage.setItem('bp-zones', showZones);
+  document.getElementById('zones-btn').classList.toggle('active', showZones);
+  const outer = document.getElementById('chart-outer');
+  if (outer.querySelector('svg')) renderStats();
+}
+
+function syncThreshInputs() {
+  for (const k of ['sys', 'dia']) {
+    const el = document.getElementById('thresh-' + k);
+    if (el) el.value = thresholds[k] != null ? thresholds[k] : '';
+  }
+  document.getElementById('zones-btn').classList.toggle('active', showZones);
+  document.getElementById('thresh-btn').classList.toggle('active', showThresh);
+}
+
+function filteredEntries() {
+  const sorted = [...entries].sort((a,b) => a.date.localeCompare(b.date));
+  if (activePeriod === -1) {
+    // All periods — time filter applies from today
+    if (activeDays === 0) return sorted;
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - activeDays + 1);
+    const cut = cutoff.toISOString().slice(0, 10);
+    return sorted.filter(e => e.date >= cut);
+  }
+  // Specific period selected — time filter is relative to period's end date
+  const periods = detectPeriods();
+  const period  = (periods[activePeriod] || []).slice().sort((a,b) => a.date.localeCompare(b.date));
+  if (!period.length || activeDays === 0) return period;
+  const endDate = period[period.length - 1].date;
+  const cutoff  = new Date(endDate + 'T00:00:00');
+  cutoff.setDate(cutoff.getDate() - activeDays + 1);
+  const cut = cutoff.toISOString().slice(0, 10);
+  return period.filter(e => e.date >= cut);
+}
+
+function entryToDay(e) {
+  const sf = [], df = [];  // fields for the main trend line
+  if (mFilters.morning && mFilters.rdg1) { sf.push(e.m1s); df.push(e.m1d); }
+  if (mFilters.morning && mFilters.rdg2) { sf.push(e.m2s); df.push(e.m2d); }
+  if (mFilters.evening && mFilters.rdg1) { sf.push(e.e1s); df.push(e.e1d); }
+  if (mFilters.evening && mFilters.rdg2) { sf.push(e.e2s); df.push(e.e2d); }
+
+  // Morning/evening breakdowns (respect rdg filter but not session filter)
+  const msf = [], mdf = [], esf = [], edf = [];
+  if (mFilters.rdg1) { msf.push(e.m1s); mdf.push(e.m1d); esf.push(e.e1s); edf.push(e.e1d); }
+  if (mFilters.rdg2) { msf.push(e.m2s); mdf.push(e.m2d); esf.push(e.e2s); edf.push(e.e2d); }
+
+  return {
+    date: e.date,
+    sys: avg(sf), dia: avg(df),
+    mSys: mFilters.morning ? avg(msf) : null,
+    mDia: mFilters.morning ? avg(mdf) : null,
+    eSys: mFilters.evening ? avg(esf) : null,
+    eDia: mFilters.evening ? avg(edf) : null,
+  };
+}
+
+function renderStats() {
+  syncThreshInputs();
+  renderPeriodBar();
+  const days = filteredEntries().map(entryToDay).filter(d => d.sys != null);
+  const grid = document.getElementById('stat-grid');
+  const outer = document.getElementById('chart-outer');
+  const meGrid = document.getElementById('me-grid');
+
+  if (!days.length) {
+    grid.innerHTML = '';
+    const old = outer.querySelector('svg'); if (old) old.remove();
+    outer.insertAdjacentHTML('afterbegin', `<div style="padding:2rem;text-align:center;color:var(--muted)">${t('stats.no_data')}</div>`);
+    meGrid.innerHTML = '';
+    return;
+  }
+
+  const placeholder = outer.querySelector('div:not(#chart-tooltip)');
+  if (placeholder) placeholder.remove();
+
+  const allSys = days.map(d => d.sys).filter(Boolean);
+  const allDia = days.map(d => d.dia).filter(Boolean);
+
+  grid.innerHTML = `
+    <div class="stat-card"><div class="val">${avg(allSys) ?? '—'}</div><div class="lbl">${t('stats.avg_sys')}</div></div>
+    <div class="stat-card"><div class="val">${avg(allDia) ?? '—'}</div><div class="lbl">${t('stats.avg_dia')}</div></div>
+    <div class="stat-card"><div class="val">${Math.max(...allSys)}/${Math.max(...allDia)}</div><div class="lbl">${t('stats.highest')}</div></div>
+    <div class="stat-card"><div class="val">${Math.min(...allSys)}/${Math.min(...allDia)}</div><div class="lbl">${t('stats.lowest')}</div></div>
+    <div class="stat-card"><div class="val">${days.length}</div><div class="lbl">${t('stats.days')}</div></div>
+  `;
+
+  const mSys = avg(days.map(d => d.mSys).filter(Boolean));
+  const mDia = avg(days.map(d => d.mDia).filter(Boolean));
+  const eSys = avg(days.map(d => d.eSys).filter(Boolean));
+  const eDia = avg(days.map(d => d.eDia).filter(Boolean));
+
+  meGrid.innerHTML = `
+    <div class="me-card">
+      <div class="me-title morning">${t('stats.morning_avg')}</div>
+      <div class="me-vals">
+        <div class="me-val"><div class="v">${mSys ?? '—'}</div><div class="l">${t('stats.sys')}</div></div>
+        <div class="me-val"><div class="v">${mDia ?? '—'}</div><div class="l">${t('stats.dia')}</div></div>
+      </div>
+    </div>
+    <div class="me-card">
+      <div class="me-title evening">${t('stats.evening_avg')}</div>
+      <div class="me-vals">
+        <div class="me-val"><div class="v">${eSys ?? '—'}</div><div class="l">${t('stats.sys')}</div></div>
+        <div class="me-val"><div class="v">${eDia ?? '—'}</div><div class="l">${t('stats.dia')}</div></div>
+      </div>
+    </div>
+  `;
+
+  drawChart(days);
+}
+
+// ── Chart ─────────────────────────────────────────────────────────────────────
+function drawChart(days) {
+  const outer = document.getElementById('chart-outer');
+  const tip   = document.getElementById('chart-tooltip');
+  const old   = outer.querySelector('svg'); if (old) old.remove();
+
+  const W = 760, H = 265, PL = 44, PR = 16, PT = 14, PB = 48;
+  const IW = W - PL - PR, IH = H - PT - PB;
+  const Y_MIN = 50, Y_MAX = 200;
+  const n = days.length;
+
+  // Time-proportional x axis — gives real visual gaps between periods
+  const dates = days.map(d => +new Date(d.date + 'T00:00:00'));
+  const minD  = n ? Math.min(...dates) : 0;
+  const maxD  = n ? Math.max(...dates) : 1;
+  const span  = maxD - minD || 86400000;
+  const xOf   = i => n <= 1 ? PL + IW / 2 : PL + ((dates[i] - minD) / span) * IW;
+  const yOf   = v => PT + (1 - (v - Y_MIN) / (Y_MAX - Y_MIN)) * IH;
+  const GAP_MS = gapThreshold * 86400000;
+
+  const dark = document.documentElement.dataset.theme === 'dark';
+  const gridCol  = dark ? '#263447' : '#e2e8f0';
+  const axisCol  = dark ? '#374f68' : '#cbd5e1';
+  const labelCol = dark ? '#7a95b0' : '#94a3b8';
+  const sepCol   = dark ? '#7a95b0' : '#94a3b8';
+  // [yFrom, yTo, fill-when-on, fill-when-off, label, labelColor]
+  const zoneDefs = dark ? [
+    [50,120, 'rgba(34,197,94,.12)',  'rgba(34,197,94,.03)',  'Normal',   '#6ee7a0'],
+    [120,130,'rgba(234,179,8,.15)',  'rgba(234,179,8,.04)',  'Elevated', '#fde68a'],
+    [130,140,'rgba(249,115,22,.15)','rgba(249,115,22,.04)', 'Stage 1',  '#fed7aa'],
+    [140,180,'rgba(239,68,68,.13)', 'rgba(239,68,68,.04)',  'Stage 2',  '#fca5a5'],
+    [180,200,'rgba(168,85,247,.15)','rgba(168,85,247,.04)', 'Crisis',   '#d8b4fe'],
+  ] : [
+    [50,120, 'rgba(134,239,172,.25)','rgba(134,239,172,.07)','Normal',   '#15803d'],
+    [120,130,'rgba(253,224,71,.30)', 'rgba(253,224,71,.08)', 'Elevated', '#a16207'],
+    [130,140,'rgba(253,186,116,.28)','rgba(253,186,116,.07)','Stage 1',  '#c2410c'],
+    [140,180,'rgba(252,165,165,.22)','rgba(252,165,165,.06)','Stage 2',  '#b91c1c'],
+    [180,200,'rgba(216,180,254,.28)','rgba(216,180,254,.07)','Crisis',   '#6d28d9'],
+  ];
+
+  const NS = 'http://www.w3.org/2000/svg';
+  function mk(tag, attrs, txt) {
+    const e = document.createElementNS(NS, tag);
+    if (attrs) Object.entries(attrs).forEach(([k, v]) => e.setAttribute(k, v));
+    if (txt != null) e.textContent = txt;
+    return e;
+  }
+
+  const svg = mk('svg', { viewBox: `0 0 ${W} ${H}` });
+  svg.style.cssText = 'display:block;width:100%;height:auto;';
+
+  // BP zone bands
+  for (const [from, to, fillOn, fillOff, zlabel, zlabelCol] of zoneDefs) {
+    const top = yOf(Math.min(to, Y_MAX)), bot = yOf(Math.max(from, Y_MIN));
+    const h = Math.max(0, bot - top);
+    if (h === 0) continue;
+    svg.appendChild(mk('rect', { x: PL, y: top, width: IW, height: h, fill: showZones ? fillOn : fillOff }));
+    if (showZones && h > 10) {
+      const cy = top + h / 2 + 4;
+      svg.appendChild(mk('text', { x: PL + IW - 5, y: cy, 'text-anchor': 'end',
+        'font-size': 9, 'font-weight': 600, fill: zlabelCol, opacity: 0.75 }, zlabel));
+    }
+  }
+
+  // Defs / clip
+  const defs = mk('defs', {});
+  const clip = mk('clipPath', { id: 'cc' });
+  clip.appendChild(mk('rect', { x: PL, y: PT, width: IW, height: IH }));
+  defs.appendChild(clip); svg.appendChild(defs);
+
+  // Period separators — vertical dashed lines where gaps appear
+  const periodStarts = [0];
+  for (let i = 1; i < n; i++) {
+    if (dates[i] - dates[i-1] > GAP_MS) {
+      const midMs = (dates[i-1] + dates[i]) / 2;
+      const x = PL + ((midMs - minD) / span) * IW;
+      svg.appendChild(mk('line', { x1: x, x2: x, y1: PT, y2: PT+IH,
+        stroke: sepCol, 'stroke-width': 1, 'stroke-dasharray': '3,4', opacity: 0.4 }));
+      periodStarts.push(i);
+    }
+  }
+
+  // Period labels at the top of each group (only when showing multiple periods)
+  if (periodStarts.length > 1) {
+    periodStarts.forEach((si, pi) => {
+      const ei = pi + 1 < periodStarts.length ? periodStarts[pi+1] - 1 : n - 1;
+      const cx = (xOf(si) + xOf(ei)) / 2;
+      const lbl = mk('text', { x: cx, y: PT - 2, 'text-anchor': 'middle',
+        'font-size': 10, fill: labelCol, 'font-weight': 600 });
+      lbl.textContent = `P${pi + 1}`;
+      svg.appendChild(lbl);
+    });
+  }
+
+  // Y grid + labels
+  for (const t of [60, 80, 100, 120, 130, 140, 160, 180]) {
+    if (t < Y_MIN || t > Y_MAX) continue;
+    const y = yOf(t);
+    svg.appendChild(mk('line', { x1: PL, x2: PL+IW, y1: y, y2: y, stroke: gridCol, 'stroke-width': 1 }));
+    svg.appendChild(mk('text', { x: PL-6, y: y+4, 'text-anchor': 'end', 'font-size': 11, fill: labelCol }, t));
+  }
+
+  // X axis labels
+  const numTicks = Math.min(8, n);
+  if (n === 1) {
+    const lbl = new Date(dates[0]).toLocaleDateString(currentLang==='de'?'de-DE':'en-US',{month:'short',day:'numeric'});
+    svg.appendChild(mk('line', {x1:xOf(0),x2:xOf(0),y1:PT+IH,y2:PT+IH+4,stroke:axisCol,'stroke-width':1}));
+    svg.appendChild(mk('text', {x:xOf(0),y:PT+IH+15,'text-anchor':'middle','font-size':11,fill:labelCol},lbl));
+  } else {
+    for (let t = 0; t < numTicks; t++) {
+      const frac = t / (numTicks - 1);
+      const x = PL + frac * IW;
+      const ms = minD + frac * span;
+      const lbl = new Date(ms).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      svg.appendChild(mk('line', {x1:x,x2:x,y1:PT+IH,y2:PT+IH+4,stroke:axisCol,'stroke-width':1}));
+      svg.appendChild(mk('text', {x,y:PT+IH+15,'text-anchor':'middle','font-size':11,fill:labelCol},lbl));
+    }
+  }
+
+  // Axes
+  svg.appendChild(mk('line', { x1: PL, x2: PL,    y1: PT,    y2: PT+IH, stroke: axisCol, 'stroke-width': 1 }));
+  svg.appendChild(mk('line', { x1: PL, x2: PL+IW, y1: PT+IH, y2: PT+IH, stroke: axisCol, 'stroke-width': 1 }));
+
+  // Data series — line breaks at period gaps
+  function drawSeries(key, color) {
+    let d = ''; let open = false;
+    for (let i = 0; i < n; i++) {
+      const v = days[i][key];
+      if (v == null) { open = false; continue; }
+      if (open && i > 0 && dates[i] - dates[i-1] > GAP_MS) open = false;
+      const x = xOf(i).toFixed(1), y = yOf(v).toFixed(1);
+      d += open ? `L${x},${y}` : `M${x},${y}`;
+      open = true;
+    }
+    if (d) svg.appendChild(mk('path', { d, fill: 'none', stroke: color, 'stroke-width': 2.5,
+      'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'clip-path': 'url(#cc)' }));
+    for (let i = 0; i < n; i++) {
+      if (days[i][key] == null) continue;
+      svg.appendChild(mk('circle', { cx: xOf(i).toFixed(1), cy: yOf(days[i][key]).toFixed(1),
+        r: 4, fill: color, stroke: '#fff', 'stroke-width': 2 }));
+    }
+  }
+
+  drawSeries('sys', '#3b82f6');
+  drawSeries('dia', '#10b981');
+
+  // Target lines
+  function drawThresh(val, label) {
+    if (!showThresh) return;
+    if (val == null || isNaN(val) || val < Y_MIN || val > Y_MAX) return;
+    const y = yOf(val);
+    svg.appendChild(mk('line', { x1: PL, x2: PL+IW, y1: y, y2: y,
+      stroke: '#f59e0b', 'stroke-width': 1.5, 'stroke-dasharray': '5,4',
+      opacity: 0.7, 'clip-path': 'url(#cc)' }));
+    svg.appendChild(mk('text', { x: PL + 4, y: y - 3, 'text-anchor': 'start',
+      'font-size': 9, fill: '#d97706', opacity: 0.9, 'font-weight': 600 }, `${label} ${val}`));
+  }
+  drawThresh(thresholds.sys, 'Sys');
+  drawThresh(thresholds.dia, 'Dia');
+
+  // Hover crosshair
+  const vline = mk('line', { x1: 0, x2: 0, y1: PT, y2: PT+IH,
+    stroke: '#94a3b8', 'stroke-width': 1, 'stroke-dasharray': '4,3', opacity: 0 });
+  svg.appendChild(vline);
+
+  // Transparent overlay for hover
+  const ov = mk('rect', { x: PL, y: PT, width: IW, height: IH, fill: 'transparent' });
+  ov.style.cursor = 'crosshair';
+
+  ov.addEventListener('mousemove', ev => {
+    const r = svg.getBoundingClientRect();
+    const mx = (ev.clientX - r.left) * (W / r.width);
+    if (mx < PL || mx > PL + IW) { vline.setAttribute('opacity', 0); tip.style.opacity = 0; return; }
+    let best = 0;
+    for (let i = 1; i < n; i++) if (Math.abs(xOf(i) - mx) < Math.abs(xOf(best) - mx)) best = i;
+    const d = days[best], x = xOf(best);
+    vline.setAttribute('x1', x); vline.setAttribute('x2', x); vline.setAttribute('opacity', 1);
+    const dt = new Date(d.date + 'T00:00:00');
+    const dl = dt.toLocaleDateString(currentLang==='de'?'de-DE':'en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    const mPart = d.mSys != null ? `${t('log.morning')} ${d.mSys}/${d.mDia}` : '';
+    const ePart = d.eSys != null ? `${t('log.evening')} ${d.eSys}/${d.eDia}` : '';
+    tip.innerHTML = `<strong>${dl}</strong><br>Sys ${d.sys ?? '—'} &nbsp; Dia ${d.dia ?? '—'}<br><span style="opacity:.65;font-size:.6875rem">${[mPart,ePart].filter(Boolean).join('&nbsp;&nbsp;')}</span>`;
+    const cx = ev.clientX - r.left, cy = ev.clientY - r.top;
+    tip.style.left = (cx + 14) + 'px'; tip.style.top = (cy - 10) + 'px'; tip.style.opacity = 1;
+  });
+
+  ov.addEventListener('mouseleave', () => { vline.setAttribute('opacity', 0); tip.style.opacity = 0; });
+  svg.appendChild(ov);
+  outer.insertBefore(svg, tip);
+}
+
+// ── Test data ─────────────────────────────────────────────────────────────────
+function refreshTestDialog() {
+  const testCount = entries.filter(e => e._test).length;
+  document.getElementById('dlg-test-count').textContent = testCount;
+  document.getElementById('dlg-all-count').textContent = entries.length;
+  document.getElementById('dlg-count').innerHTML =
+    `<strong>${testCount}</strong> test entr${testCount !== 1 ? 'ies' : 'y'} · <strong>${entries.length}</strong> total`;
+}
+
+function jitter(n, spread = 6) { return n + Math.round((Math.random() - 0.5) * spread); }
+
+function generateTestData(scenario, numDays, offsetDays = 0) {
+  const result = [];
+  const today = new Date();
+
+  for (let i = numDays - 1; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i - offsetDays);
+    const date = d.toISOString().slice(0, 10);
+    const t = (numDays - 1 - i) / Math.max(numDays - 1, 1); // 0 → 1 over time
+
+    let bSys, bDia;
+    switch (scenario) {
+      case 'normal':
+        bSys = jitter(116, 10); bDia = jitter(75, 8); break;
+      case 'stage1':
+        bSys = jitter(134, 10); bDia = jitter(85, 8); break;
+      case 'improving':
+        bSys = Math.round(150 - t * 34) + jitter(0, 8);
+        bDia = Math.round(96  - t * 22) + jitter(0, 6); break;
+      case 'worsening':
+        bSys = Math.round(116 + t * 34) + jitter(0, 8);
+        bDia = Math.round(75  + t * 22) + jitter(0, 6); break;
+      case 'mixed':
+      default: {
+        const cats = [
+          [116, 75], [125, 77], [134, 85], [143, 92], [118, 76],
+          [128, 79], [138, 88], [115, 74], [132, 83], [146, 94]
+        ];
+        const [s, dd] = cats[Math.floor(Math.random() * cats.length)];
+        bSys = jitter(s, 8); bDia = jitter(dd, 6); break;
+      }
+    }
+
+    // Morning tends to run slightly higher; each reading has small noise
+    const mOff = 3 + Math.round(Math.random() * 4);
+    const eOff = -1 + Math.round(Math.random() * 3);
+    result.push({
+      id: crypto.randomUUID(), date, _test: true,
+      m1s: bSys + mOff + jitter(0, 5), m1d: bDia + jitter(0, 4),
+      m2s: bSys + mOff + jitter(0, 5), m2d: bDia + jitter(0, 4),
+      e1s: bSys + eOff + jitter(0, 5), e1d: bDia + jitter(0, 4),
+      e2s: bSys + eOff + jitter(0, 5), e2d: bDia + jitter(0, 4),
+    });
+  }
+  return result;
+}
+
+function addTestData() {
+  const scenario   = document.querySelector('input[name="scenario"]:checked').value;
+  const numDays    = parseInt(document.getElementById('test-days').value);
+  const includeGap = document.getElementById('test-gap').checked;
+
+  let generated;
+  if (includeGap) {
+    const half = Math.ceil(numDays / 2);
+    const GAP  = 45;
+    // Older period ends ~(half + GAP) days ago; recent period ends today
+    generated = [
+      ...generateTestData(scenario, half, half + GAP),
+      ...generateTestData(scenario, half, 0),
+    ];
+  } else {
+    generated = generateTestData(scenario, numDays);
+  }
+
+  let added = 0, updated = 0;
+  for (const g of generated) {
+    const idx = entries.findIndex(e => e.date === g.date);
+    if (idx >= 0) { entries[idx] = g; updated++; }
+    else { entries.push(g); added++; }
+  }
+
+  persist(); renderLog(); refreshTestDialog();
+  document.getElementById('test-dialog').close();
+  showToast(`Added ${added} entries, updated ${updated}.`);
+}
+
+function deleteTestEntries() {
+  const n = entries.filter(e => e._test).length;
+  if (!n) { showToast(t('toast.no_test')); return; }
+  if (!confirm(`Delete ${n} test entr${n !== 1 ? 'ies' : 'y'}?`)) return;
+  entries = entries.filter(e => !e._test);
+  persist(); renderLog(); refreshTestDialog();
+  showToast(`Deleted ${n} test entr${n !== 1 ? 'ies' : 'y'}.`);
+}
+
+function deleteAllEntries() {
+  if (!entries.length) { showToast(t('toast.nothing')); return; }
+  if (!confirm(`Delete all ${entries.length} entries? This cannot be undone.`)) return;
+  entries = [];
+  persist(); renderLog(); refreshTestDialog();
+  showToast(t('toast.all_del'));
+}
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
+let toastTimer;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+document.getElementById('inp-date').valueAsDate = new Date();
+syncSettingsUI();
+renderLog();
+
+// Delegated delete — avoids interpolating e.id into onclick attribute strings
+document.getElementById('log-body').addEventListener('click', ev => {
+  const btn = ev.target.closest('[data-del-id]');
+  if (btn) deleteEntry(btn.dataset.delId);
+});
+
+// Number input spinners — start from a sensible value instead of min
+document.querySelectorAll('input[type="number"][data-def]').forEach(el => {
+  el.addEventListener('focus', function() {
+    if (this.value === '') { this.value = this.dataset.def; this._wasDefault = true; }
+    else this._wasDefault = false;
+  });
+  el.addEventListener('input', function() { this._wasDefault = false; });
+  el.addEventListener('blur',  function() {
+    if (this._wasDefault) { this.value = ''; this._wasDefault = false; }
+  });
+});
+</script>
+</body>
+</html>
