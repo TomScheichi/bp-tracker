@@ -1558,15 +1558,38 @@ document.getElementById('log-body').addEventListener('click', ev => {
   if (btn) deleteEntry(btn.dataset.delId);
 });
 
-// Number input spinners — start from a sensible value instead of min
+// Number fields rely on their placeholder for a sensible-value hint and stay
+// empty until the user actually enters something. The only prefill is the
+// desktop spinner: pressing ↑/↓ in an empty field jumps to the sensible
+// default (e.g. 120) instead of the field minimum (60).
+//
+// We deliberately do NOT prefill on focus or clear on blur — that earlier
+// approach silently discarded the apparent value on iOS Safari, where tapping
+// Save blurred the field (and wiped it) before the value was read.
 document.querySelectorAll('input[type="number"][data-def]').forEach(el => {
-  el.addEventListener('focus', function() {
-    if (this.value === '') { this.value = this.dataset.def; this._wasDefault = true; }
-    else this._wasDefault = false;
+  // True only when the field was empty at the moment its spinner was clicked,
+  // and the user hasn't typed since (typing/arrowing clears it below).
+  let spinnerFromEmpty = false;
+
+  el.addEventListener('mousedown', function(e) {
+    if (e.button === 0) spinnerFromEmpty = (this.value === '');
   });
-  el.addEventListener('input', function() { this._wasDefault = false; });
-  el.addEventListener('blur',  function() {
-    if (this._wasDefault) { this.value = ''; this._wasDefault = false; }
+
+  el.addEventListener('keydown', function(e) {
+    spinnerFromEmpty = false; // a keystroke means this isn't a mouse-spin
+    // Keyboard arrows on an empty field jump to the default instead of the min.
+    if (this.value === '' && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+      e.preventDefault();
+      this.value = this.dataset.def;
+    }
+  });
+
+  // Clicking the spinner on an empty field natively jumps to the min; swap in
+  // the sensible default so mouse and keyboard behave the same. (Programmatic
+  // value changes like this one don't re-fire 'input', so there's no loop.)
+  el.addEventListener('input', function() {
+    if (spinnerFromEmpty && this.value !== '') this.value = this.dataset.def;
+    spinnerFromEmpty = false;
   });
 });
 </script>
