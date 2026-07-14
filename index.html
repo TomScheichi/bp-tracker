@@ -88,6 +88,8 @@ label{display:block;font-size:.6875rem;font-weight:600;letter-spacing:.04em;text
 input[type="date"],input[type="number"]{width:100%;padding:.4375rem .625rem;border:1.5px solid var(--border);border-radius:var(--radius-s);font-size:.9375rem;font-family:inherit;color:var(--text);background:var(--surf);transition:border-color .15s,box-shadow .15s,background .3s;}
 input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(59,130,246,.18);}
 .date-wrap{width:200px;}
+input[type="text"].txt-inp{width:220px;max-width:100%;padding:.4375rem .625rem;border:1.5px solid var(--border);border-radius:var(--radius-s);font-size:.9375rem;font-family:inherit;color:var(--text);background:var(--surf);transition:border-color .15s,box-shadow .15s,background .3s;}
+input[type="text"].txt-inp:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(59,130,246,.18);}
 
 .sessions-grid{display:grid;grid-template-columns:1fr 1fr;gap:.875rem;}
 .session-box{border:1.5px solid var(--border);border-radius:var(--radius-s);overflow:hidden;transition:border-color .3s;}
@@ -369,7 +371,13 @@ select:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(
   <div class="main">
 
     <div class="card">
-      <div class="card-title" data-i18n="stats.trends">Trends</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:.5rem;margin-bottom:1rem">
+        <div class="card-title" style="margin-bottom:0" data-i18n="stats.trends">Trends</div>
+        <button class="btn btn-outline" onclick="exportPDF()" title="Export report as PDF">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 18 15 15"/></svg>
+          <span data-i18n="stats.export_pdf">Export PDF</span>
+        </button>
+      </div>
       <!-- Period selector (auto-generated when multiple periods detected) -->
       <div class="period-bar" id="period-bar" style="display:none"></div>
 
@@ -481,6 +489,28 @@ select:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(
             <option value="7">7 days</option>
             <option value="14">14 days</option>
           </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <p class="setting-section-title" data-i18n="set.report_sec">Report / PDF Export</p>
+      <div class="setting-row">
+        <div>
+          <div class="setting-label" data-i18n="set.patient_name">Patient name</div>
+          <div class="setting-desc"  data-i18n="set.patient_name_desc">Shown in the header of the PDF report</div>
+        </div>
+        <div class="setting-right">
+          <input type="text" class="txt-inp" id="patient-name" maxlength="80" oninput="setPatientField('name',this.value)" data-i18n-ph="set.patient_name_ph" placeholder="e.g. Jane Doe">
+        </div>
+      </div>
+      <div class="setting-row">
+        <div>
+          <div class="setting-label" data-i18n="set.social_id">Social / insurance ID</div>
+          <div class="setting-desc"  data-i18n="set.social_id_desc">Shown in the header of the PDF report</div>
+        </div>
+        <div class="setting-right">
+          <input type="text" class="txt-inp" id="patient-id" maxlength="40" oninput="setPatientField('id',this.value)" data-i18n-ph="set.social_id_ph" placeholder="e.g. 123-45-6789">
         </div>
       </div>
     </div>
@@ -671,7 +701,7 @@ const TRANSLATIONS = {
     'stats.avg_sys':'Avg Systolic','stats.avg_dia':'Avg Diastolic',
     'stats.highest':'Highest','stats.lowest':'Lowest','stats.days':'Days logged',
     'stats.no_data':'No data for this period.',
-    'stats.all_periods':'All','stats.period_lbl':'Period',
+    'stats.all_periods':'All','stats.period_lbl':'Period','stats.export_pdf':'Export PDF',
     'set.appearance':'Appearance','set.dark_mode':'Dark mode','set.dark_desc':'Switch to a darker color scheme',
     'set.stats_sec':'Statistics','set.gap':'Period gap threshold',
     'set.gap_desc':'Days of inactivity before starting a new measurement period',
@@ -683,6 +713,13 @@ const TRANSLATIONS = {
     'set.choose_file':'Choose file…',
     'set.test_sec':'Test Data','set.about':'About','set.storage':'Storage',
     'set.storage_desc':"All data lives in your browser's localStorage. Nothing leaves your device unless you export.",
+    'set.report_sec':'Report / PDF Export',
+    'set.patient_name':'Patient name','set.patient_name_desc':'Shown in the header of the PDF report','set.patient_name_ph':'e.g. Jane Doe',
+    'set.social_id':'Social / insurance ID','set.social_id_desc':'Shown in the header of the PDF report','set.social_id_ph':'e.g. 123-45-6789',
+    'pdf.title':'Blood Pressure Report','pdf.patient':'Patient','pdf.social':'Social / insurance ID',
+    'pdf.date':'Report date','pdf.range':'Period covered','pdf.summary':'Summary','pdf.trend':'Trend','pdf.daily':'Daily readings',
+    'pdf.date_col':'Date','pdf.day_avg':'Day avg','pdf.classification':'Classification','pdf.no_name':'—',
+    'pdf.generated':'Generated with Blood Pressure Tracker','pdf.print':'Print / Save as PDF',
     'gap.2':'2 days','gap.3':'3 days','gap.5':'5 days','gap.7':'7 days','gap.14':'14 days',
     'test.hero':'Generate realistic test data to explore the app, or clean up entries you no longer need.',
     'test.open':'Open Test Data Manager','test.dlg_title':'🔬 Test Data Manager',
@@ -725,7 +762,7 @@ const TRANSLATIONS = {
     'stats.avg_sys':'Ø Systolisch','stats.avg_dia':'Ø Diastolisch',
     'stats.highest':'Höchstwert','stats.lowest':'Tiefstwert','stats.days':'Tage erfasst',
     'stats.no_data':'Keine Daten für diesen Zeitraum.',
-    'stats.all_periods':'Alle','stats.period_lbl':'Periode',
+    'stats.all_periods':'Alle','stats.period_lbl':'Periode','stats.export_pdf':'PDF exportieren',
     'set.appearance':'Erscheinungsbild','set.dark_mode':'Dunkelmodus','set.dark_desc':'Zu einem dunkleren Farbschema wechseln',
     'set.stats_sec':'Statistik','set.gap':'Periodenpausen-Schwellenwert',
     'set.gap_desc':'Tage ohne Messungen, bevor eine neue Periode beginnt',
@@ -737,6 +774,13 @@ const TRANSLATIONS = {
     'set.choose_file':'Datei auswählen…',
     'set.test_sec':'Testdaten','set.about':'Über die App','set.storage':'Speicher',
     'set.storage_desc':'Alle Daten werden lokal im Browser gespeichert. Nichts verlässt Ihr Gerät außer beim Export.',
+    'set.report_sec':'Bericht / PDF-Export',
+    'set.patient_name':'Patientenname','set.patient_name_desc':'Erscheint im Kopf des PDF-Berichts','set.patient_name_ph':'z. B. Max Mustermann',
+    'set.social_id':'Versicherten-/Sozial-ID','set.social_id_desc':'Erscheint im Kopf des PDF-Berichts','set.social_id_ph':'z. B. 123-45-6789',
+    'pdf.title':'Blutdruck-Bericht','pdf.patient':'Patient','pdf.social':'Versicherten-/Sozial-ID',
+    'pdf.date':'Berichtsdatum','pdf.range':'Erfasster Zeitraum','pdf.summary':'Zusammenfassung','pdf.trend':'Verlauf','pdf.daily':'Tägliche Messungen',
+    'pdf.date_col':'Datum','pdf.day_avg':'Tages-Ø','pdf.classification':'Klassifikation','pdf.no_name':'—',
+    'pdf.generated':'Erstellt mit Blood Pressure Tracker','pdf.print':'Drucken / Als PDF speichern',
     'gap.2':'2 Tage','gap.3':'3 Tage','gap.5':'5 Tage','gap.7':'7 Tage','gap.14':'14 Tage',
     'test.hero':'Realistische Testdaten generieren oder nicht mehr benötigte Einträge löschen.',
     'test.open':'Testdaten-Manager öffnen','test.dlg_title':'🔬 Testdaten-Manager',
@@ -947,8 +991,15 @@ function syncSettingsUI() {
   document.getElementById('dark-toggle').checked = mode === 'dark';
   const gap = localStorage.getItem('bp-gap') || '3';
   document.getElementById('gap-select').value = gap;
+  document.getElementById('patient-name').value = localStorage.getItem('bp-patient-name') || '';
+  document.getElementById('patient-id').value   = localStorage.getItem('bp-patient-id')   || '';
   refreshTestDialog();
   applyLang();
+}
+
+// ── Patient info (for PDF report header) ───────────────────────────────────────
+function setPatientField(field, val) {
+  localStorage.setItem(field === 'name' ? 'bp-patient-name' : 'bp-patient-id', val);
 }
 
 // ── BP helpers ───────────────────────────────────────────────────────────────
@@ -1243,6 +1294,9 @@ function renderStats() {
 }
 
 // ── Chart ─────────────────────────────────────────────────────────────────────
+// When true, drawChart renders with the light palette regardless of the active
+// theme — used to produce a clean, print-friendly chart for the PDF report.
+let chartForceLight = false;
 function drawChart(days) {
   const outer = document.getElementById('chart-outer');
   const tip   = document.getElementById('chart-tooltip');
@@ -1262,7 +1316,7 @@ function drawChart(days) {
   const yOf   = v => PT + (1 - (v - Y_MIN) / (Y_MAX - Y_MIN)) * IH;
   const GAP_MS = gapThreshold * 86400000;
 
-  const dark = document.documentElement.dataset.theme === 'dark';
+  const dark = !chartForceLight && document.documentElement.dataset.theme === 'dark';
   const gridCol  = dark ? '#263447' : '#e2e8f0';
   const axisCol  = dark ? '#374f68' : '#cbd5e1';
   const labelCol = dark ? '#7a95b0' : '#94a3b8';
@@ -1431,6 +1485,136 @@ function drawChart(days) {
   ov.addEventListener('mouseleave', () => { vline.setAttribute('opacity', 0); tip.style.opacity = 0; });
   svg.appendChild(ov);
   outer.insertBefore(svg, tip);
+}
+
+// ── PDF report ──────────────────────────────────────────────────────────────
+// Builds a clean, print-friendly report from the currently-filtered Statistics
+// data and opens it in a new window with the browser's print dialog (which
+// offers "Save as PDF"). Header shows patient name, social ID and report date.
+const PDF_CAT = {
+  normal:  ['#dcfce7','#15803d'], elevated:['#fef9c3','#a16207'],
+  stage1:  ['#ffedd5','#c2410c'], stage2:  ['#fee2e2','#b91c1c'],
+  crisis:  ['#ede9fe','#6d28d9'],
+};
+const PDF_CAT_NAME = {
+  en:{normal:'Normal',elevated:'Elevated',stage1:'Stage 1',stage2:'Stage 2',crisis:'Crisis'},
+  de:{normal:'Normal',elevated:'Erhöht',stage1:'Stufe 1',stage2:'Stufe 2',crisis:'Krise'},
+};
+
+function exportPDF() {
+  const days = filteredEntries().map(entryToDay).filter(d => d.sys != null);
+  if (!days.length) { showToast(t('stats.no_data')); return; }
+
+  const de  = currentLang === 'de';
+  const loc = de ? 'de-DE' : 'en-US';
+  const esc = escAttr;
+
+  // Header fields
+  const pName = (localStorage.getItem('bp-patient-name') || '').trim();
+  const pId   = (localStorage.getItem('bp-patient-id')   || '').trim();
+  const reportDate = new Date().toLocaleDateString(loc, { year:'numeric', month:'long', day:'numeric' });
+  const fmtD = iso => new Date(iso+'T00:00:00').toLocaleDateString(loc,{year:'numeric',month:'short',day:'numeric'});
+  const rangeTxt = days.length === 1 ? fmtD(days[0].date)
+    : `${fmtD(days[0].date)} – ${fmtD(days[days.length-1].date)}`;
+
+  // Summary numbers
+  const allSys = days.map(d=>d.sys).filter(Boolean);
+  const allDia = days.map(d=>d.dia).filter(Boolean);
+  const mSys = avg(days.map(d=>d.mSys).filter(Boolean)), mDia = avg(days.map(d=>d.mDia).filter(Boolean));
+  const eSys = avg(days.map(d=>d.eSys).filter(Boolean)), eDia = avg(days.map(d=>d.eDia).filter(Boolean));
+  const hi = a => a.length ? Math.max(...a) : '—', lo = a => a.length ? Math.min(...a) : '—';
+
+  // Light-theme chart for print, then restore the live (possibly dark) chart
+  chartForceLight = true;
+  drawChart(days);
+  const chartSvg = document.getElementById('chart-outer').querySelector('svg').outerHTML;
+  chartForceLight = false;
+  drawChart(days);
+
+  // Daily rows
+  const catName = c => c ? (PDF_CAT_NAME[de?'de':'en'][c] || '') : '';
+  const cell = (s,d) => (s!=null && d!=null) ? `${s}/${d}` : '—';
+  const rows = days.map(d => {
+    const c = classify(d.sys, d.dia);
+    const chip = c ? `background:${PDF_CAT[c][0]};color:${PDF_CAT[c][1]}` : '';
+    const dLbl = new Date(d.date+'T00:00:00').toLocaleDateString(loc,{weekday:'short',day:'2-digit',month:'2-digit',year:'numeric'});
+    return `<tr><td class="l">${esc(dLbl)}</td><td>${cell(d.mSys,d.mDia)}</td><td>${cell(d.eSys,d.eDia)}</td>`
+      + `<td><span class="chip" style="${chip}">${cell(d.sys,d.dia)}</span></td><td class="l">${esc(catName(c))}</td></tr>`;
+  }).join('');
+
+  const stat = (v,l) => `<div class="s"><div class="sv">${v}</div><div class="sl">${esc(l)}</div></div>`;
+
+  const html = `<!DOCTYPE html><html lang="${currentLang}"><head><meta charset="UTF-8">
+<title>${esc(t('pdf.title'))}${pName ? ' – '+esc(pName) : ''}</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;color:#0f172a;font-size:12px;line-height:1.5;padding:24px;max-width:820px;margin:0 auto}
+  h1{font-size:20px;letter-spacing:-.02em;margin-bottom:6px}
+  h2{font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:#475569;margin:22px 0 10px;border-bottom:1px solid #e2e8f0;padding-bottom:4px}
+  .hdr{display:flex;justify-content:space-between;gap:24px;border-bottom:2px solid #1e40af;padding-bottom:14px;margin-bottom:6px}
+  .hdr-r{text-align:right}
+  .meta{font-size:12px;color:#334155;margin-top:3px}
+  .meta .k{color:#64748b;font-weight:600}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .s{border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px;background:#f8fafc}
+  .sv{font-size:18px;font-weight:700}
+  .sl{font-size:10.5px;color:#64748b;margin-top:2px}
+  .chart{border:1px solid #e2e8f0;border-radius:8px;padding:10px}
+  .chart svg{display:block;width:100%;height:auto}
+  table{width:100%;border-collapse:collapse;font-size:11px}
+  th{background:#f1f5f9;color:#475569;font-size:10px;text-transform:uppercase;letter-spacing:.04em;padding:6px 8px;text-align:center;border-bottom:2px solid #cbd5e1}
+  td{padding:5px 8px;text-align:center;border-bottom:1px solid #e2e8f0}
+  th.l,td.l{text-align:left}
+  .chip{display:inline-block;padding:2px 7px;border-radius:5px;font-weight:600}
+  .foot{margin-top:22px;padding-top:10px;border-top:1px solid #e2e8f0;font-size:10px;color:#94a3b8;text-align:center}
+  .noprint{margin-top:16px;text-align:center}
+  .noprint button{font:inherit;font-weight:600;padding:9px 20px;border:none;border-radius:7px;background:#2563eb;color:#fff;cursor:pointer}
+  @page{margin:14mm}
+  @media print{.noprint{display:none}body{padding:0}}
+</style></head><body>
+  <div class="hdr">
+    <div>
+      <h1>${esc(t('pdf.title'))}</h1>
+      <div class="meta"><span class="k">${esc(t('pdf.patient'))}:</span> ${pName ? esc(pName) : esc(t('pdf.no_name'))}</div>
+      <div class="meta"><span class="k">${esc(t('pdf.social'))}:</span> ${pId ? esc(pId) : esc(t('pdf.no_name'))}</div>
+    </div>
+    <div class="hdr-r">
+      <div class="meta"><span class="k">${esc(t('pdf.date'))}:</span> ${esc(reportDate)}</div>
+      <div class="meta"><span class="k">${esc(t('pdf.range'))}:</span> ${esc(rangeTxt)}</div>
+    </div>
+  </div>
+  <h2>${esc(t('pdf.summary'))}</h2>
+  <div class="stats">
+    ${stat(`${avg(allSys)??'—'}/${avg(allDia)??'—'}`, `${t('stats.avg_sys')} / ${t('stats.avg_dia')}`)}
+    ${stat(`${hi(allSys)}/${hi(allDia)}`, t('stats.highest'))}
+    ${stat(`${lo(allSys)}/${lo(allDia)}`, t('stats.lowest'))}
+    ${stat(`${mSys??'—'}/${mDia??'—'}`, t('stats.morning_avg'))}
+    ${stat(`${eSys??'—'}/${eDia??'—'}`, t('stats.evening_avg'))}
+    ${stat(days.length, t('stats.days'))}
+  </div>
+  <h2>${esc(t('pdf.trend'))}</h2>
+  <div class="chart">${chartSvg}</div>
+  <h2>${esc(t('pdf.daily'))}</h2>
+  <table>
+    <thead><tr>
+      <th class="l">${esc(t('pdf.date_col'))}</th>
+      <th>&#9728; ${esc(t('log.morning'))}</th>
+      <th>&#9790; ${esc(t('log.evening'))}</th>
+      <th>${esc(t('pdf.day_avg'))}</th>
+      <th class="l">${esc(t('pdf.classification'))}</th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+  </table>
+  <div class="foot">${esc(t('pdf.generated'))} · ${esc(reportDate)}</div>
+  <div class="noprint"><button onclick="window.print()">${esc(t('pdf.print'))}</button></div>
+</body></html>`;
+
+  const w = window.open('', '_blank');
+  if (!w) { showToast(de ? 'Pop-up blockiert — bitte erlauben.' : 'Pop-up blocked — please allow it.'); return; }
+  w.document.write(html);
+  w.document.close();
+  w.focus();
+  setTimeout(() => { try { w.print(); } catch (e) {} }, 350);
 }
 
 // ── Test data ─────────────────────────────────────────────────────────────────
