@@ -124,6 +124,7 @@ thead th.group-evening{color:var(--c-crisis-t);background:var(--c-crisis);border
 td{padding:.375rem .5rem;border-bottom:1px solid var(--border);text-align:center;vertical-align:middle;transition:background .15s;}
 tbody tr:last-child td{border-bottom:none;}
 tbody tr:hover td{background:var(--surf-2);}
+.period-row td{text-align:left;background:var(--surf-2);border-top:2px solid var(--primary);border-bottom:1px solid var(--border);padding:.4375rem .6875rem;font-size:.75rem;font-weight:600;color:var(--muted);letter-spacing:.02em;}
 .date-cell{text-align:left;white-space:nowrap;}
 .date-main{font-weight:600;font-size:.8125rem;}
 .date-sub{font-size:.625rem;color:var(--muted);}
@@ -1066,8 +1067,7 @@ function renderLog() {
     tbody.innerHTML = `<tr><td colspan="10"><div class="empty-state"><div class="icon">&#9829;</div><div>${t('log.empty')}</div></div></td></tr>`;
     return;
   }
-  const sorted = [...entries].sort((a, b) => b.date.localeCompare(a.date));
-  tbody.innerHTML = sorted.map(e => {
+  const entryRow = e => {
     const dt = fmtDate(e.date);
     return `<tr>
       <td class="date-cell"><div class="date-main">${dt.main}</div><div class="date-sub">${dt.sub}</div></td>
@@ -1077,7 +1077,21 @@ function renderLog() {
       <td>${bpChip(e.e2s, e.e2s, e.e2d)}</td><td>${bpChip(e.e2d, e.e2s, e.e2d)}</td>
       <td><button class="btn-del" data-del-id="${escAttr(e.id)}" title="Delete">&#10005;</button></td>
     </tr>`;
-  }).join('');
+  };
+  const periods = detectPeriods(); // oldest → newest
+  if (periods.length <= 1) {
+    const sorted = [...entries].sort((a, b) => b.date.localeCompare(a.date));
+    tbody.innerHTML = sorted.map(entryRow).join('');
+    return;
+  }
+  // Multiple periods — group rows under a date-range banner, newest period first
+  let html = '';
+  for (let pi = periods.length - 1; pi >= 0; pi--) {
+    const p = periods[pi];
+    html += `<tr class="period-row"><td colspan="10">${escAttr(periodLabel(p))} · ${p.length}×</td></tr>`;
+    html += [...p].sort((a, b) => b.date.localeCompare(a.date)).map(entryRow).join('');
+  }
+  tbody.innerHTML = html;
 }
 
 function saveEntry() {
@@ -1623,8 +1637,9 @@ function exportPDF() {
   const pId   = (localStorage.getItem('bp-patient-id')   || '').trim();
   const reportDate = new Date().toLocaleDateString(loc, { year:'numeric', month:'long', day:'numeric' });
   const fmtD = iso => new Date(iso+'T00:00:00').toLocaleDateString(loc,{year:'numeric',month:'short',day:'numeric'});
-  const rangeTxt = days.length === 1 ? fmtD(days[0].date)
-    : `${fmtD(days[0].date)} – ${fmtD(days[days.length-1].date)}`;
+  const rangeOf = g => g.length === 1 ? fmtD(g[0].date)
+    : `${fmtD(g[0].date)} – ${fmtD(g[g.length-1].date)}`;
+  const rangeTxt = rangeOf(days);
 
   // Summary numbers
   const allSys = days.map(d=>d.sys).filter(Boolean);
@@ -1648,13 +1663,23 @@ function exportPDF() {
   // A reading cell coloured by its own classification (same scheme as the day-avg chip)
   const chipCell = (s,d) => (s == null || d == null) ? '—'
     : `<span class="chip" style="${chipStyle(classify(s,d))}">${s}/${d}</span>`;
-  const rows = days.map(d => {
+  const dayRow = d => {
     const c = classify(d.sys, d.dia);
     const dLbl = new Date(d.date+'T00:00:00').toLocaleDateString(loc,{weekday:'short',day:'2-digit',month:'2-digit',year:'numeric'});
     return `<tr><td class="l">${esc(dLbl)}</td>`
       + `<td class="mcol">${chipCell(d.m1s,d.m1d)}</td><td class="mcol">${chipCell(d.m2s,d.m2d)}</td>`
       + `<td class="ecol">${chipCell(d.e1s,d.e1d)}</td><td class="ecol">${chipCell(d.e2s,d.e2d)}</td>`
       + `<td><span class="chip" style="${chipStyle(c)}">${cell(d.sys,d.dia)}</span></td><td class="l">${esc(catName(c))}</td></tr>`;
+  };
+  // Group the daily rows into detected periods (reuses the same gap detection as
+  // the chart and log). When more than one period is present, precede each with
+  // a date-range banner row.
+  const groups = detectPeriods(days);
+  const rows = groups.map(g => {
+    const banner = groups.length > 1
+      ? `<tr class="period-row"><td colspan="7">${esc(rangeOf(g))} · ${g.length}×</td></tr>`
+      : '';
+    return banner + g.map(dayRow).join('');
   }).join('');
 
   const stat = (v,l) => `<div class="s"><div class="sv">${v}</div><div class="sl">${esc(l)}</div></div>`;
@@ -1680,6 +1705,7 @@ function exportPDF() {
   th{background:#f1f5f9;color:#475569;font-size:10px;text-transform:uppercase;letter-spacing:.04em;padding:6px 8px;text-align:center;border-bottom:2px solid #cbd5e1}
   td{padding:5px 8px;text-align:center;border-bottom:1px solid #e2e8f0}
   th.l,td.l{text-align:left}
+  tr.period-row td{background:#eef2f7;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#334155;padding:5px 8px;border-top:2px solid #2563eb}
   th.grp{border-bottom:1px solid #cbd5e1}
   th.mgrp{color:#a16207;background:#fef9c3}
   th.egrp{color:#6d28d9;background:#ede9fe}
