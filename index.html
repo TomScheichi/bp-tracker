@@ -26,6 +26,12 @@
   --c-s1:    #ffedd5; --c-s1-t:    #c2410c;
   --c-s2:    #fee2e2; --c-s2-t:    #b91c1c;
   --c-crisis:#ede9fe; --c-crisis-t:#6d28d9;
+  /* 6-step BP classification palette (optimal → grade 3) */
+  --c-optimal:#ccfbf1;    --c-optimal-t:#0f766e;
+  --c-hochnormal:#fef9c3; --c-hochnormal-t:#a16207;
+  --c-grad1:#ffedd5;      --c-grad1-t:#c2410c;
+  --c-grad2:#fee2e2;      --c-grad2-t:#b91c1c;
+  --c-grad3:#ede9fe;      --c-grad3-t:#6d28d9;
   --radius:  11px;
   --radius-s:7px;
   --sh:   0 1px 3px rgba(0,0,0,.07),0 1px 2px rgba(0,0,0,.04);
@@ -49,6 +55,11 @@
   --c-s1:    #4a1a07; --c-s1-t:    #fed7aa;
   --c-s2:    #4a0f0f; --c-s2-t:    #fca5a5;
   --c-crisis:#2e0a52; --c-crisis-t:#d8b4fe;
+  --c-optimal:#0c3b32;    --c-optimal-t:#5eead4;
+  --c-hochnormal:#4a2a08; --c-hochnormal-t:#fde68a;
+  --c-grad1:#4a1a07;      --c-grad1-t:#fed7aa;
+  --c-grad2:#4a0f0f;      --c-grad2-t:#fca5a5;
+  --c-grad3:#2e0a52;      --c-grad3-t:#d8b4fe;
   --sh:   0 1px 4px rgba(0,0,0,.45);
   --sh-m: 0 6px 20px rgba(0,0,0,.55),0 1px 4px rgba(0,0,0,.3);
 }
@@ -108,11 +119,12 @@ input[type="text"].txt-inp:focus{outline:none;border-color:var(--primary);box-sh
 /* ── BP Legend chips ─────────────────────────────── */
 .legend{display:flex;flex-wrap:wrap;gap:.375rem;}
 .chip{font-size:.6875rem;font-weight:600;padding:.1875rem .5rem;border-radius:20px;}
-.bp-normal  {background:var(--c-normal);  color:var(--c-normal-t);}
-.bp-elevated{background:var(--c-elev);    color:var(--c-elev-t);}
-.bp-stage1  {background:var(--c-s1);      color:var(--c-s1-t);}
-.bp-stage2  {background:var(--c-s2);      color:var(--c-s2-t);}
-.bp-crisis  {background:var(--c-crisis);  color:var(--c-crisis-t);}
+.bp-optimal   {background:var(--c-optimal);    color:var(--c-optimal-t);}
+.bp-normal    {background:var(--c-normal);     color:var(--c-normal-t);}
+.bp-hochnormal{background:var(--c-hochnormal); color:var(--c-hochnormal-t);}
+.bp-grad1     {background:var(--c-grad1);      color:var(--c-grad1-t);}
+.bp-grad2     {background:var(--c-grad2);      color:var(--c-grad2-t);}
+.bp-grad3     {background:var(--c-grad3);      color:var(--c-grad3-t);}
 
 /* ── Table ───────────────────────────────────────── */
 .table-wrap{overflow-x:auto;}
@@ -334,13 +346,7 @@ select:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(
 
     <div class="card" style="padding:1rem 1.5rem">
       <div class="card-title" style="font-size:.8125rem;margin-bottom:.625rem" data-i18n="log.classif">BP Classification</div>
-      <div class="legend">
-        <span class="chip bp-normal"    data-i18n="log.normal"  >Normal &lt;120/&lt;80</span>
-        <span class="chip bp-elevated"  data-i18n="log.elevated">Elevated 120–129/&lt;80</span>
-        <span class="chip bp-stage1"    data-i18n="log.stage1"  >Stage 1  130–139/80–89</span>
-        <span class="chip bp-stage2"    data-i18n="log.stage2"  >Stage 2  ≥140/≥90</span>
-        <span class="chip bp-crisis"    data-i18n="log.crisis"  >Crisis &gt;180/&gt;120</span>
-      </div>
+      <div class="legend" id="class-legend"></div>
     </div>
 
     <div class="card">
@@ -496,6 +502,17 @@ select:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(
           </select>
         </div>
       </div>
+    </div>
+
+    <div class="card">
+      <p class="setting-section-title" data-i18n="set.class_sec">BP Classification</p>
+      <div class="setting-desc" style="margin-bottom:.875rem" data-i18n="set.class_desc">Set the lower bound (systolic / diastolic, mmHg) at which each category starts. A reading is classified by whichever of its systolic or diastolic value lands in the higher category.</div>
+      <div id="class-thresholds"></div>
+      <div id="class-error" role="alert" style="display:none;font-size:.8125rem;margin-top:.625rem;padding:.5rem .75rem;border-radius:var(--radius-s);background:var(--c-grad2);color:var(--c-grad2-t)"></div>
+      <button class="btn btn-outline" onclick="resetThresholds()" style="margin-top:.875rem">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+        <span data-i18n="set.class_reset">Reset to defaults</span>
+      </button>
     </div>
 
     <div class="card">
@@ -700,8 +717,6 @@ const TRANSLATIONS = {
     'log.rdg1':'Rdg 1','log.rdg2':'Rdg 2',
     'log.sys':'Systolic','log.dia':'Diastolic',
     'log.save':'Save Entry','log.classif':'BP Classification',
-    'log.normal':'Normal <120/<80','log.elevated':'Elevated 120–129/<80',
-    'log.stage1':'Stage 1  130–139/80–89','log.stage2':'Stage 2  ≥140/≥90','log.crisis':'Crisis >180/>120',
     'log.table':'Measurement Log','log.tbl_date':'Date',
     'log.tbl_morning':'☀ Morning','log.tbl_evening':'☽ Evening','log.empty':'No entries yet.',
     'stats.trends':'Trends',
@@ -720,6 +735,13 @@ const TRANSLATIONS = {
     'set.appearance':'Appearance','set.dark_mode':'Dark mode','set.dark_desc':'Switch to a darker color scheme',
     'set.stats_sec':'Statistics','set.gap':'Period gap threshold',
     'set.gap_desc':'Days of inactivity before starting a new measurement period',
+    'set.class_sec':'BP Classification','set.class_reset':'Reset to defaults',
+    'set.class_desc':'Set the lower bound (systolic / diastolic, mmHg) at which each category starts. A reading is classified by whichever of its systolic or diastolic value lands in the higher category.',
+    'set.class_optimal':'Optimal — any reading below the Normal threshold.',
+    'err.number':'{cat}: please enter whole numbers for both values.',
+    'err.range':'{cat}: {metric} must be between {min} and {max} mmHg.',
+    'err.sysdia':'{cat}: systolic must be higher than diastolic.',
+    'err.order':'{cat}: {metric} ({val}) must be higher than {prev} ({pv}).',
     'set.lang':'Language','set.lang_desc':'Switch interface language',
     'set.data':'Data','set.export':'Export','set.export_desc':'Download all entries as a JSON file','set.export_btn':'Export JSON',
     'set.import':'Import','set.import_desc':'Choose how to handle existing data:',
@@ -741,7 +763,7 @@ const TRANSLATIONS = {
     'test.open':'Open Test Data Manager','test.dlg_title':'🔬 Test Data Manager',
     'test.add_sec':'Add test data',
     'test.sc_normal':'Normal','test.sc_normal_d':'~115/75 · stable',
-    'test.sc_stage1':'Stage 1 HT','test.sc_stage1_d':'~134/85 · elevated',
+    'test.sc_stage1':'Grade 1 HT','test.sc_stage1_d':'~134/85 · elevated',
     'test.sc_improving':'Improving','test.sc_improving_d':'150/95 → 118/76',
     'test.sc_worsening':'Worsening','test.sc_worsening_d':'115/75 → 150/95',
     'test.sc_mixed':'Mixed / Realistic','test.sc_mixed_d':'Variable across all categories',
@@ -764,8 +786,6 @@ const TRANSLATIONS = {
     'log.rdg1':'Mss. 1','log.rdg2':'Mss. 2',
     'log.sys':'Systolisch','log.dia':'Diastolisch',
     'log.save':'Eintrag speichern','log.classif':'BD-Klassifikation',
-    'log.normal':'Normal <120/<80','log.elevated':'Erhöht 120–129/<80',
-    'log.stage1':'Stufe 1  130–139/80–89','log.stage2':'Stufe 2  ≥140/≥90','log.crisis':'Krise >180/>120',
     'log.table':'Messprotokoll','log.tbl_date':'Datum',
     'log.tbl_morning':'☀ Morgen','log.tbl_evening':'☽ Abend','log.empty':'Noch keine Einträge.',
     'stats.trends':'Verlauf',
@@ -784,6 +804,13 @@ const TRANSLATIONS = {
     'set.appearance':'Erscheinungsbild','set.dark_mode':'Dunkelmodus','set.dark_desc':'Zu einem dunkleren Farbschema wechseln',
     'set.stats_sec':'Statistik','set.gap':'Periodenpausen-Schwellenwert',
     'set.gap_desc':'Tage ohne Messungen, bevor eine neue Periode beginnt',
+    'set.class_sec':'BD-Klassifikation','set.class_reset':'Auf Standard zurücksetzen',
+    'set.class_desc':'Legen Sie den unteren Grenzwert (systolisch / diastolisch, mmHg) fest, ab dem jede Kategorie beginnt. Ein Messwert wird nach der höheren der beiden Kategorien (systolisch oder diastolisch) eingestuft.',
+    'set.class_optimal':'Optimal — jeder Wert unterhalb des Normal-Schwellenwerts.',
+    'err.number':'{cat}: Bitte ganze Zahlen für beide Werte eingeben.',
+    'err.range':'{cat}: {metric} muss zwischen {min} und {max} mmHg liegen.',
+    'err.sysdia':'{cat}: systolisch muss höher als diastolisch sein.',
+    'err.order':'{cat}: {metric} ({val}) muss höher als {prev} ({pv}) sein.',
     'set.lang':'Sprache','set.lang_desc':'Sprache der Benutzeroberfläche wechseln',
     'set.data':'Daten','set.export':'Export','set.export_desc':'Alle Einträge als JSON-Datei herunterladen','set.export_btn':'JSON exportieren',
     'set.import':'Import','set.import_desc':'Wählen Sie, wie mit vorhandenen Daten umgegangen werden soll:',
@@ -805,7 +832,7 @@ const TRANSLATIONS = {
     'test.open':'Testdaten-Manager öffnen','test.dlg_title':'🔬 Testdaten-Manager',
     'test.add_sec':'Testdaten hinzufügen',
     'test.sc_normal':'Normal','test.sc_normal_d':'~115/75 · stabil',
-    'test.sc_stage1':'Stufe 1 HT','test.sc_stage1_d':'~134/85 · erhöht',
+    'test.sc_stage1':'Grad 1 HT','test.sc_stage1_d':'~134/85 · erhöht',
     'test.sc_improving':'Verbessernd','test.sc_improving_d':'150/95 → 118/76',
     'test.sc_worsening':'Verschlechternd','test.sc_worsening_d':'115/75 → 150/95',
     'test.sc_mixed':'Gemischt / Realistisch','test.sc_mixed_d':'Variabel über alle Kategorien',
@@ -850,6 +877,9 @@ function applyLang() {
   if (td) td.querySelectorAll('option').forEach(o => { o.textContent = t('test.days_' + o.value); });
   // Language buttons
   document.querySelectorAll('[data-lang-btn]').forEach(b => b.classList.toggle('active', b.dataset.langBtn === currentLang));
+  // Classification legend + threshold labels depend on language
+  renderClassLegend();
+  renderThresholdSettings();
 }
 
 // ── Storage ──────────────────────────────────────────────────────────────────
@@ -858,8 +888,45 @@ let entries = JSON.parse(localStorage.getItem(KEY) || '[]');
 function persist() { localStorage.setItem(KEY, JSON.stringify(entries)); }
 
 // ── Export / Import ──────────────────────────────────────────────────────────
+// Preferences carried along with the readings so a backup fully restores the
+// app. Each is a localStorage key; values are stored/exported as strings.
+const SETTINGS_KEYS = [
+  'bp-classification', 'bp-gap', 'bp-patient-name', 'bp-patient-id',
+  'bp-thresh', 'bp-zones', 'bp-thresh-show', 'bp-gaps', 'bp-lang', 'bp-theme',
+];
+function collectSettings() {
+  const s = {};
+  for (const k of SETTINGS_KEYS) { const v = localStorage.getItem(k); if (v != null) s[k] = v; }
+  return s;
+}
+// Writes imported settings to localStorage and re-hydrates the in-memory state
+// that mirrors them. Returns how many settings were applied.
+function applySettings(s) {
+  if (!s || typeof s !== 'object') return 0;
+  let n = 0;
+  for (const k of SETTINGS_KEYS) {
+    if (s[k] != null) { localStorage.setItem(k, String(s[k])); n++; }
+  }
+  if (!n) return 0;
+  gapThreshold = Math.min(Math.max(parseInt(localStorage.getItem('bp-gap')) || 3, 2), 30);
+  bpThresholds = loadThresholds();
+  try { thresholds = JSON.parse(localStorage.getItem(THRESH_KEY) || '{}'); } catch (e) { thresholds = {}; }
+  showZones  = localStorage.getItem('bp-zones')       !== 'false';
+  showThresh = localStorage.getItem('bp-thresh-show') !== 'false';
+  showGaps   = localStorage.getItem('bp-gaps')        !== 'false';
+  const lang = localStorage.getItem('bp-lang');
+  if (lang && TRANSLATIONS[lang]) { currentLang = lang; document.documentElement.lang = lang; }
+  setTheme(localStorage.getItem('bp-theme') === 'dark' ? 'dark' : 'light');
+  return n;
+}
+
 function exportData() {
-  const payload = JSON.stringify(entries, null, 2);
+  const payload = JSON.stringify({
+    version: 2,
+    exported: new Date().toISOString(),
+    entries,
+    settings: collectSettings(),
+  }, null, 2);
   const blob = new Blob([payload], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -883,13 +950,20 @@ function importData(input) {
       result.textContent = 'Invalid JSON file.';
       input.value = ''; return;
     }
-    if (!Array.isArray(imported)) {
+    // Accept both the legacy bare array and the v2 { entries, settings } object
+    let rawEntries, impSettings = null;
+    if (Array.isArray(imported)) {
+      rawEntries = imported;
+    } else if (imported && Array.isArray(imported.entries)) {
+      rawEntries = imported.entries;
+      if (imported.settings && typeof imported.settings === 'object') impSettings = imported.settings;
+    } else {
       result.style.display = 'block'; result.style.color = '#ef4444';
-      result.textContent = 'Expected a JSON array of entries.';
+      result.textContent = 'Expected a JSON array of entries or an export file.';
       input.value = ''; return;
     }
     const BP_FIELDS = ['m1s','m1d','m2s','m2d','e1s','e1d','e2s','e2d'];
-    const valid = imported
+    const valid = rawEntries
       .filter(r => r.date && typeof r.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(r.date))
       .map(r => {
         const clean = { id: crypto.randomUUID(), date: r.date };
@@ -899,7 +973,7 @@ function importData(input) {
         }
         return clean;
       });
-    if (!valid.length) {
+    if (!valid.length && !impSettings) {
       result.style.display = 'block'; result.style.color = '#ef4444';
       result.textContent = 'No valid entries found in file.';
       input.value = ''; return;
@@ -911,7 +985,7 @@ function importData(input) {
       entries.findIndex(ex => ex.date === rec.date) === -1 ? willAdd++ : willUpdate++;
     }
 
-    _pendingImport = { valid, mode, input };
+    _pendingImport = { valid, mode, input, settings: impSettings };
 
     const dlg = document.getElementById('import-confirm-dialog');
     const title = document.getElementById('icd-title');
@@ -919,16 +993,17 @@ function importData(input) {
     const warn  = document.getElementById('icd-warning');
     const btn   = document.getElementById('icd-confirm-btn');
 
+    const settingsNote = impSettings ? ' Saved settings (classification thresholds, patient info, preferences) will also be applied.' : '';
     if (mode === 'replace') {
       title.textContent = 'Replace all data?';
-      body.textContent  = `The file contains ${valid.length} entr${valid.length === 1 ? 'y' : 'ies'}. All ${entries.length} existing entr${entries.length === 1 ? 'y' : 'ies'} will be permanently deleted and replaced.`;
+      body.textContent  = `The file contains ${valid.length} entr${valid.length === 1 ? 'y' : 'ies'}. All ${entries.length} existing entr${entries.length === 1 ? 'y' : 'ies'} will be permanently deleted and replaced.` + settingsNote;
       warn.style.display = 'block';
       warn.textContent   = '⚠ This cannot be undone. Consider exporting your current data first.';
       btn.className = 'btn btn-danger';
       btn.textContent = 'Delete & replace';
     } else {
       title.textContent = 'Merge into existing data?';
-      body.textContent  = `The file contains ${valid.length} entr${valid.length === 1 ? 'y' : 'ies'}: ${willAdd} new date${willAdd === 1 ? '' : 's'} will be added, ${willUpdate} existing date${willUpdate === 1 ? '' : 's'} will be updated.`;
+      body.textContent  = `The file contains ${valid.length} entr${valid.length === 1 ? 'y' : 'ies'}: ${willAdd} new date${willAdd === 1 ? '' : 's'} will be added, ${willUpdate} existing date${willUpdate === 1 ? '' : 's'} will be updated.` + settingsNote;
       warn.style.display = 'none';
       btn.className = 'btn btn-primary-sm';
       btn.textContent = 'Merge';
@@ -941,7 +1016,7 @@ function importData(input) {
 function confirmImport() {
   document.getElementById('import-confirm-dialog').close();
   if (!_pendingImport) return;
-  const { valid, mode, input } = _pendingImport;
+  const { valid, mode, input, settings } = _pendingImport;
   _pendingImport = null;
   const result = document.getElementById('import-result');
   let added = 0, updated = 0;
@@ -962,14 +1037,19 @@ function confirmImport() {
       }
     }
   }
-  persist(); renderLog();
+  persist();
+  // Apply any imported preferences, then fully refresh the UI from them
+  const nSettings = applySettings(settings);
+  renderLog();
+  if (nSettings) syncSettingsUI(); else applyLang();
   if (document.getElementById('page-stats').classList.contains('active')) renderStats();
+  const settingsMsg = nSettings ? ` · ${nSettings} setting${nSettings === 1 ? '' : 's'} applied` : '';
   result.style.display = 'block'; result.style.color = 'var(--muted)';
-  result.textContent = mode === 'replace'
+  result.textContent = (mode === 'replace'
     ? `Replaced — ${added} entries loaded.`
-    : `Merged — ${added} added, ${updated} updated.`;
+    : `Merged — ${added} added, ${updated} updated.`) + settingsMsg;
   input.value = '';
-  showToast(mode === 'replace' ? `Replaced: ${added} entries` : `Merged: ${added} added, ${updated} updated`);
+  showToast((mode === 'replace' ? `Replaced: ${added} entries` : `Merged: ${added} added, ${updated} updated`) + settingsMsg);
 }
 
 function cancelImport() {
@@ -1022,14 +1102,178 @@ function setPatientField(field, val) {
   localStorage.setItem(field === 'name' ? 'bp-patient-name' : 'bp-patient-id', val);
 }
 
+// ── BP classification (ESC/ESH categories, user-configurable thresholds) ──────
+// Ordered lowest → highest. "optimal" is the implicit base (below the "normal"
+// threshold); the other five keys each store the lower bound (inclusive) at
+// which that category begins.
+const CAT_ORDER = ['optimal', 'normal', 'hochnormal', 'grad1', 'grad2', 'grad3'];
+const CAT_NAMES = {
+  en: { optimal:'Optimal', normal:'Normal', hochnormal:'High-normal', grad1:'Hypertension Grade 1', grad2:'Hypertension Grade 2', grad3:'Hypertension Grade 3' },
+  de: { optimal:'Optimal', normal:'Normal', hochnormal:'Hochnormal', grad1:'Hypertonie Grad 1', grad2:'Hypertonie Grad 2', grad3:'Hypertonie Grad 3' },
+};
+// Compact labels for the chart's zone bands (limited horizontal room)
+const CAT_SHORT = {
+  en: { optimal:'Optimal', normal:'Normal', hochnormal:'High-normal', grad1:'Grade 1', grad2:'Grade 2', grad3:'Grade 3' },
+  de: { optimal:'Optimal', normal:'Normal', hochnormal:'Hochnormal', grad1:'Grad 1', grad2:'Grad 2', grad3:'Grad 3' },
+};
+const DEFAULT_THRESHOLDS = {
+  normal:     { sys:120, dia:80 },
+  hochnormal: { sys:130, dia:85 },
+  grad1:      { sys:140, dia:90 },
+  grad2:      { sys:160, dia:100 },
+  grad3:      { sys:180, dia:110 },
+};
+const CLASS_KEY = 'bp-classification';
+function loadThresholds() {
+  let stored = {};
+  try { stored = JSON.parse(localStorage.getItem(CLASS_KEY) || '{}'); } catch { stored = {}; }
+  const out = {};
+  for (const k of Object.keys(DEFAULT_THRESHOLDS)) {
+    const s = stored[k] || {};
+    out[k] = {
+      sys: Number.isFinite(s.sys) ? s.sys : DEFAULT_THRESHOLDS[k].sys,
+      dia: Number.isFinite(s.dia) ? s.dia : DEFAULT_THRESHOLDS[k].dia,
+    };
+  }
+  return out;
+}
+let bpThresholds = loadThresholds();
+function saveThresholds() { localStorage.setItem(CLASS_KEY, JSON.stringify(bpThresholds)); }
+
 // ── BP helpers ───────────────────────────────────────────────────────────────
 function classify(sys, dia) {
   if (!sys || !dia) return null;
-  if (sys > 180 || dia > 120) return 'crisis';
-  if (sys >= 140 || dia >= 90)  return 'stage2';
-  if (sys >= 130 || dia >= 80)  return 'stage1';
-  if (sys >= 120 && dia < 80)   return 'elevated';
-  return 'normal';
+  const T = bpThresholds;
+  // Level 0 = optimal; 1..5 = normal..grad3. A value gets the index of the
+  // highest threshold it reaches; the reading takes the higher of sys/dia.
+  const lvl = (v, k) =>
+    v >= T.grad3[k]      ? 5 :
+    v >= T.grad2[k]      ? 4 :
+    v >= T.grad1[k]      ? 3 :
+    v >= T.hochnormal[k] ? 2 :
+    v >= T.normal[k]     ? 1 : 0;
+  return CAT_ORDER[Math.max(lvl(sys, 'sys'), lvl(dia, 'dia'))];
+}
+
+// Human-readable range text for a category, derived from the current thresholds
+// (e.g. "120–129/80–84"). Shared by the Log legend and the PDF legend.
+function catRange(key) {
+  const T = bpThresholds;
+  if (key === 'optimal') return `<${T.normal.sys}/<${T.normal.dia}`;
+  if (key === 'grad3')   return `≥${T.grad3.sys}/≥${T.grad3.dia}`;
+  const next = CAT_ORDER[CAT_ORDER.indexOf(key) + 1];
+  return `${T[key].sys}–${T[next].sys - 1}/${T[key].dia}–${T[next].dia - 1}`;
+}
+
+// Renders the colour-coded legend chips in the Log tab from the live thresholds
+function renderClassLegend() {
+  const el = document.getElementById('class-legend');
+  if (!el) return;
+  const names = CAT_NAMES[currentLang === 'de' ? 'de' : 'en'];
+  el.innerHTML = CAT_ORDER.map(k =>
+    `<span class="chip bp-${k}">${escAttr(names[k])} ${escAttr(catRange(k))}</span>`).join('');
+}
+
+// Renders the editable threshold rows in Settings
+function renderThresholdSettings() {
+  const el = document.getElementById('class-thresholds');
+  if (!el) return;
+  const names = CAT_NAMES[currentLang === 'de' ? 'de' : 'en'];
+  const rows = Object.keys(DEFAULT_THRESHOLDS).map(k => `
+    <div class="thresh-group" style="justify-content:space-between;padding:.25rem 0">
+      <span class="thresh-metric" style="min-width:150px;display:flex;align-items:center;gap:.4375rem">
+        <span class="chip bp-${k}" style="width:14px;height:14px;padding:0;border-radius:4px"></span>${escAttr(names[k])}
+      </span>
+      <span class="thresh-inputs">
+        <span class="thresh-dash">≥</span>
+        <input class="thresh-inp" type="number" min="${SYS_RANGE[0]}" max="${SYS_RANGE[1]}" inputmode="numeric"
+               value="${bpThresholds[k].sys}" onchange="setThreshold('${k}','sys',this)">
+        <span class="thresh-dash">/</span>
+        <input class="thresh-inp" type="number" min="${DIA_RANGE[0]}" max="${DIA_RANGE[1]}" inputmode="numeric"
+               value="${bpThresholds[k].dia}" onchange="setThreshold('${k}','dia',this)">
+        <span class="thresh-unit">mmHg</span>
+      </span>
+    </div>`).join('');
+  el.innerHTML = rows +
+    `<div class="thresh-group" style="padding:.5rem 0 0">
+       <span class="setting-desc">${escAttr(t('set.class_optimal'))}</span>
+     </div>`;
+}
+
+// Physiologically plausible bounds for a threshold (mmHg), shared by the input
+// attributes and the validator.
+const SYS_RANGE = [60, 300], DIA_RANGE = [30, 200];
+const THRESH_KEYS = Object.keys(DEFAULT_THRESHOLDS); // normal → grad3, ascending
+
+// Tiny {placeholder} formatter over the i18n strings
+function tf(key, vars) {
+  return t(key).replace(/\{(\w+)\}/g, (_, p) => vars[p] != null ? vars[p] : '{' + p + '}');
+}
+
+// Returns a human-readable error message if `cand` is not a valid, ascending,
+// in-range threshold set, or null when it is valid.
+function validateThresholds(cand) {
+  const names = CAT_NAMES[currentLang === 'de' ? 'de' : 'en'];
+  const metrics = [['sys', SYS_RANGE, t('log.sys')], ['dia', DIA_RANGE, t('log.dia')]];
+  for (const k of THRESH_KEYS) {
+    for (const [m, range, lbl] of metrics) {
+      const v = cand[k][m];
+      if (!Number.isFinite(v)) return tf('err.number', { cat: names[k] });
+      if (v < range[0] || v > range[1])
+        return tf('err.range', { cat: names[k], metric: lbl, min: range[0], max: range[1] });
+    }
+    if (cand[k].sys <= cand[k].dia) return tf('err.sysdia', { cat: names[k] });
+  }
+  // Each category must sit strictly above the one below it, for both values.
+  for (let i = 1; i < THRESH_KEYS.length; i++) {
+    const prev = THRESH_KEYS[i - 1], cur = THRESH_KEYS[i];
+    for (const [m, , lbl] of metrics) {
+      if (cand[cur][m] <= cand[prev][m])
+        return tf('err.order', { cat: names[cur], metric: lbl, val: cand[cur][m], prev: names[prev], pv: cand[prev][m] });
+    }
+  }
+  return null;
+}
+
+function showClassError(msg) {
+  const el = document.getElementById('class-error');
+  if (el) { el.textContent = msg; el.style.display = 'block'; }
+}
+function clearClassError() {
+  const el = document.getElementById('class-error');
+  if (el) { el.style.display = 'none'; el.textContent = ''; }
+}
+
+// Called on commit (change/blur). Validates the whole set with the proposed
+// value applied; saves only if valid, otherwise shows feedback and reverts the
+// field to the last valid stored value.
+function setThreshold(cat, k, inputEl) {
+  const raw = String(inputEl.value).trim();
+  const cand = JSON.parse(JSON.stringify(bpThresholds));
+  cand[cat][k] = (raw !== '' && /^-?\d+$/.test(raw)) ? parseInt(raw, 10) : NaN;
+  const err = validateThresholds(cand);
+  if (err) {
+    showClassError(err);
+    inputEl.value = bpThresholds[cat][k]; // revert to last valid value
+    return;
+  }
+  bpThresholds = cand;
+  saveThresholds();
+  clearClassError();
+  afterThresholdChange();
+}
+function resetThresholds() {
+  bpThresholds = JSON.parse(JSON.stringify(DEFAULT_THRESHOLDS));
+  saveThresholds();
+  clearClassError();
+  renderThresholdSettings();
+  afterThresholdChange();
+}
+// Repaint everything that depends on classification after a threshold edit
+function afterThresholdChange() {
+  renderClassLegend();
+  renderLog();
+  if (document.getElementById('page-stats').classList.contains('active')) renderStats();
 }
 
 // Safe HTML attribute escaping used throughout the render functions
@@ -1377,7 +1621,13 @@ function drawChart(days) {
 
   const W = 760, H = 265, PL = 44, PR = 16, PT = 14, PB = 48;
   const IW = W - PL - PR, IH = H - PT - PB;
-  const Y_MIN = 50, Y_MAX = 200;
+  // Y axis floors at 50 but its ceiling grows to fit the highest reading, the
+  // Grade 3 threshold, or the systolic goal line — rounded up with headroom —
+  // so nothing clips at the top when thresholds or readings run high.
+  const Y_MIN = 50;
+  const topData   = days.reduce((m, d) => Math.max(m, d.sysMax ?? d.sys ?? 0), 0);
+  const topThresh = Math.max(bpThresholds.grad3.sys, thresholds.sys || 0);
+  const Y_MAX = Math.max(200, Math.ceil((Math.max(topData, topThresh) + 8) / 10) * 10);
   const n = days.length;
 
   // X axis: with gaps → space points by real time (visual gaps between periods);
@@ -1399,25 +1649,36 @@ function drawChart(days) {
   const axisCol  = dark ? '#374f68' : '#cbd5e1';
   const labelCol = dark ? '#7a95b0' : '#94a3b8';
   const sepCol   = dark ? '#7a95b0' : '#94a3b8';
-  // [yFrom, yTo, fill-when-on, fill-when-off, label, labelColor]
-  const zoneDefs = dark ? [
-    [50,120, 'rgba(34,197,94,.12)',  'rgba(34,197,94,.03)',  'Normal',   '#6ee7a0'],
-    [120,130,'rgba(234,179,8,.15)',  'rgba(234,179,8,.04)',  'Elevated', '#fde68a'],
-    [130,140,'rgba(249,115,22,.15)','rgba(249,115,22,.04)', 'Stage 1',  '#fed7aa'],
-    [140,180,'rgba(239,68,68,.13)', 'rgba(239,68,68,.04)',  'Stage 2',  '#fca5a5'],
-    [180,200,'rgba(168,85,247,.15)','rgba(168,85,247,.04)', 'Crisis',   '#d8b4fe'],
-  ] : [
-    [50,120, 'rgba(134,239,172,.25)','rgba(134,239,172,.07)','Normal',   '#15803d'],
-    [120,130,'rgba(253,224,71,.30)', 'rgba(253,224,71,.08)', 'Elevated', '#a16207'],
-    [130,140,'rgba(253,186,116,.28)','rgba(253,186,116,.07)','Stage 1',  '#c2410c'],
-    [140,180,'rgba(252,165,165,.22)','rgba(252,165,165,.06)','Stage 2',  '#b91c1c'],
-    [180,200,'rgba(216,180,254,.28)','rgba(216,180,254,.07)','Crisis',   '#6d28d9'],
-  ];
-  // Saturated colour per classification (derived from each zone's accent), used
-  // to tint the category label in the hover tooltip. zoneDefs is ordered
-  // normal→crisis, matching CAT_ORDER, and each row's last field is its colour.
-  const CAT_ORDER = ['normal','elevated','stage1','stage2','crisis'];
-  const catCol = Object.fromEntries(zoneDefs.map((z, i) => [CAT_ORDER[i], z[5]]));
+  // Per-category fill [fill-when-on, fill-when-off, accentColour], light & dark.
+  // Bands are built from the live thresholds so they always match the Log/PDF.
+  const pal = dark ? {
+    optimal:    ['rgba(45,212,191,.13)', 'rgba(45,212,191,.04)', '#5eead4'],
+    normal:     ['rgba(132,204,22,.13)', 'rgba(132,204,22,.04)', '#bef264'],
+    hochnormal: ['rgba(234,179,8,.15)',  'rgba(234,179,8,.04)',  '#fde68a'],
+    grad1:      ['rgba(249,115,22,.15)', 'rgba(249,115,22,.04)', '#fed7aa'],
+    grad2:      ['rgba(239,68,68,.13)',  'rgba(239,68,68,.04)',  '#fca5a5'],
+    grad3:      ['rgba(168,85,247,.15)', 'rgba(168,85,247,.04)', '#d8b4fe'],
+  } : {
+    optimal:    ['rgba(45,212,191,.22)', 'rgba(45,212,191,.06)', '#0f766e'],
+    normal:     ['rgba(132,204,22,.22)', 'rgba(132,204,22,.06)', '#4d7c0f'],
+    hochnormal: ['rgba(253,224,71,.30)', 'rgba(253,224,71,.08)', '#a16207'],
+    grad1:      ['rgba(253,186,116,.28)','rgba(253,186,116,.07)','#c2410c'],
+    grad2:      ['rgba(252,165,165,.22)','rgba(252,165,165,.06)','#b91c1c'],
+    grad3:      ['rgba(216,180,254,.28)','rgba(216,180,254,.07)','#6d28d9'],
+  };
+  const T = bpThresholds;
+  const short = CAT_SHORT[currentLang === 'de' ? 'de' : 'en'];
+  // Lower systolic bound of each band (optimal starts at the chart floor)
+  const zoneFrom = { optimal:Y_MIN, normal:T.normal.sys, hochnormal:T.hochnormal.sys,
+                     grad1:T.grad1.sys, grad2:T.grad2.sys, grad3:T.grad3.sys };
+  // [yFrom, yTo, fill-when-on, fill-when-off, label, labelColor] — ordered CAT_ORDER
+  const zoneDefs = CAT_ORDER.map((k, i) => {
+    const from = zoneFrom[k];
+    const to = i + 1 < CAT_ORDER.length ? zoneFrom[CAT_ORDER[i + 1]] : Y_MAX;
+    return [from, to, pal[k][0], pal[k][1], short[k], pal[k][2]];
+  });
+  // Accent colour per category, used to tint the hover-tooltip label
+  const catCol = Object.fromEntries(CAT_ORDER.map((k, i) => [k, zoneDefs[i][5]]));
 
   const NS = 'http://www.w3.org/2000/svg';
   function mk(tag, attrs, txt) {
@@ -1475,12 +1736,23 @@ function drawChart(days) {
     });
   }
 
-  // Y grid + labels
-  for (const t of [60, 80, 100, 120, 130, 140, 160, 180]) {
-    if (t < Y_MIN || t > Y_MAX) continue;
-    const y = yOf(t);
-    svg.appendChild(mk('line', { x1: PL, x2: PL+IW, y1: y, y2: y, stroke: gridCol, 'stroke-width': 1 }));
-    svg.appendChild(mk('text', { x: PL-6, y: y+4, 'text-anchor': 'end', 'font-size': 11, fill: labelCol }, t));
+  // Y grid + labels. The systolic classification boundaries become emphasised,
+  // colour-coded gridlines so the zone bands are self-explanatory and the axis
+  // labels always line up with where one category turns into the next; a few
+  // neutral reference ticks fill in the lower range.
+  const threshY = {}; // systolic value → band accent colour
+  for (const k of ['normal', 'hochnormal', 'grad1', 'grad2', 'grad3']) threshY[bpThresholds[k].sys] = catCol[k];
+  const tickVals = Array.from(new Set([60, 80, 100].concat(Object.keys(threshY).map(Number))))
+    .filter(v => v >= Y_MIN && v <= Y_MAX)
+    .sort((a, b) => a - b);
+  for (const tv of tickVals) {
+    const y = yOf(tv);
+    const accent = threshY[tv]; // defined only on a classification boundary
+    svg.appendChild(mk('line', { x1: PL, x2: PL+IW, y1: y, y2: y,
+      stroke: accent || gridCol, 'stroke-width': 1,
+      ...(accent ? { 'stroke-dasharray': '4,3', opacity: 0.55 } : {}) }));
+    svg.appendChild(mk('text', { x: PL-6, y: y+4, 'text-anchor': 'end', 'font-size': 11,
+      fill: accent || labelCol, 'font-weight': accent ? 600 : 400 }, tv));
   }
 
   // X axis labels
@@ -1597,7 +1869,7 @@ function drawChart(days) {
     const ePart = d.eSys != null ? `${t('log.evening')} ${d.eSys}/${d.eDia}` : '';
     const rng = (mn, mx) => (mn != null && mx != null && mn !== mx) ? ` <span style="opacity:.6">(${mn}–${mx})</span>` : '';
     const cat = classify(d.sys, d.dia);
-    const catPart = cat ? `<br><span style="font-weight:600;color:${catCol[cat]}">${PDF_CAT_NAME[currentLang==='de'?'de':'en'][cat]}</span>` : '';
+    const catPart = cat ? `<br><span style="font-weight:600;color:${catCol[cat]}">${CAT_NAMES[currentLang==='de'?'de':'en'][cat]}</span>` : '';
     tip.innerHTML = `<strong>${dl}</strong><br>Sys ${d.sys ?? '—'}${rng(d.sysMin,d.sysMax)} &nbsp; Dia ${d.dia ?? '—'}${rng(d.diaMin,d.diaMax)}${catPart}<br><span style="opacity:.65;font-size:.6875rem">${[mPart,ePart].filter(Boolean).join('&nbsp;&nbsp;')}</span>`;
     const cx = ev.clientX - r.left, cy = ev.clientY - r.top;
     tip.style.left = (cx + 14) + 'px'; tip.style.top = (cy - 10) + 'px'; tip.style.opacity = 1;
@@ -1612,14 +1884,11 @@ function drawChart(days) {
 // Builds a clean, print-friendly report from the currently-filtered Statistics
 // data and opens it in a new window with the browser's print dialog (which
 // offers "Save as PDF"). Header shows patient name, social ID and report date.
+// Chip colours for the print report (light palette, matching the CSS vars)
 const PDF_CAT = {
-  normal:  ['#dcfce7','#15803d'], elevated:['#fef9c3','#a16207'],
-  stage1:  ['#ffedd5','#c2410c'], stage2:  ['#fee2e2','#b91c1c'],
-  crisis:  ['#ede9fe','#6d28d9'],
-};
-const PDF_CAT_NAME = {
-  en:{normal:'Normal',elevated:'Elevated',stage1:'Stage 1',stage2:'Stage 2',crisis:'Crisis'},
-  de:{normal:'Normal',elevated:'Erhöht',stage1:'Stufe 1',stage2:'Stufe 2',crisis:'Krise'},
+  optimal:   ['#ccfbf1','#0f766e'], normal:     ['#dcfce7','#15803d'],
+  hochnormal:['#fef9c3','#a16207'], grad1:      ['#ffedd5','#c2410c'],
+  grad2:     ['#fee2e2','#b91c1c'], grad3:      ['#ede9fe','#6d28d9'],
 };
 
 function exportPDF() {
@@ -1656,7 +1925,7 @@ function exportPDF() {
   drawChart(days);
 
   // Daily rows
-  const catName = c => c ? (PDF_CAT_NAME[de?'de':'en'][c] || '') : '';
+  const catName = c => c ? (CAT_NAMES[de?'de':'en'][c] || '') : '';
   const cell = (s,d) => (s!=null && d!=null) ? `${s}/${d}` : '—';
   // Inline chip style for a classification (shared by the reading cells and the day-avg chip)
   const chipStyle = c => c ? `background:${PDF_CAT[c][0]};color:${PDF_CAT[c][1]}` : '';
@@ -1764,8 +2033,8 @@ function exportPDF() {
   </table>
   <div class="legend-h">${esc(t('pdf.legend'))}</div>
   <div class="legend">
-    ${['normal','elevated','stage1','stage2','crisis'].map(c =>
-      `<span class="chip" style="background:${PDF_CAT[c][0]};color:${PDF_CAT[c][1]}">${esc(t('log.'+c))}</span>`).join('')}
+    ${CAT_ORDER.map(c =>
+      `<span class="chip" style="background:${PDF_CAT[c][0]};color:${PDF_CAT[c][1]}">${esc(CAT_NAMES[de?'de':'en'][c])} ${esc(catRange(c))}</span>`).join('')}
   </div>
   <div class="foot">${esc(t('pdf.generated'))} · ${esc(reportDate)}</div>
   <div class="noprint"><button onclick="window.print()">${esc(t('pdf.print'))}</button></div>
