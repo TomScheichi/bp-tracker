@@ -32,6 +32,10 @@
   --c-grad1:#ffedd5;      --c-grad1-t:#c2410c;
   --c-grad2:#fee2e2;      --c-grad2-t:#b91c1c;
   --c-grad3:#ede9fe;      --c-grad3-t:#6d28d9;
+  /* ESC 2024 3-category palette */
+  --c-nicht_erhoeht:#dcfce7; --c-nicht_erhoeht-t:#15803d;
+  --c-erhoeht:#fef9c3;       --c-erhoeht-t:#a16207;
+  --c-bluthochdruck:#fee2e2; --c-bluthochdruck-t:#b91c1c;
   --radius:  11px;
   --radius-s:7px;
   --sh:   0 1px 3px rgba(0,0,0,.07),0 1px 2px rgba(0,0,0,.04);
@@ -60,6 +64,9 @@
   --c-grad1:#4a1a07;      --c-grad1-t:#fed7aa;
   --c-grad2:#4a0f0f;      --c-grad2-t:#fca5a5;
   --c-grad3:#2e0a52;      --c-grad3-t:#d8b4fe;
+  --c-nicht_erhoeht:#0f3d22; --c-nicht_erhoeht-t:#6ee7a0;
+  --c-erhoeht:#4a2a08;       --c-erhoeht-t:#fde68a;
+  --c-bluthochdruck:#4a0f0f; --c-bluthochdruck-t:#fca5a5;
   --sh:   0 1px 4px rgba(0,0,0,.45);
   --sh-m: 0 6px 20px rgba(0,0,0,.55),0 1px 4px rgba(0,0,0,.3);
 }
@@ -125,6 +132,9 @@ input[type="text"].txt-inp:focus{outline:none;border-color:var(--primary);box-sh
 .bp-grad1     {background:var(--c-grad1);      color:var(--c-grad1-t);}
 .bp-grad2     {background:var(--c-grad2);      color:var(--c-grad2-t);}
 .bp-grad3     {background:var(--c-grad3);      color:var(--c-grad3-t);}
+.bp-nicht_erhoeht{background:var(--c-nicht_erhoeht);color:var(--c-nicht_erhoeht-t);}
+.bp-erhoeht      {background:var(--c-erhoeht);      color:var(--c-erhoeht-t);}
+.bp-bluthochdruck{background:var(--c-bluthochdruck);color:var(--c-bluthochdruck-t);}
 
 /* ── Table ───────────────────────────────────────── */
 .table-wrap{overflow-x:auto;}
@@ -394,6 +404,12 @@ select:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(
       <!-- Period selector (auto-generated when multiple periods detected) -->
       <div class="period-bar" id="period-bar" style="display:none"></div>
 
+      <!-- Quick classification-scheme switch (mirrors the one in Settings) -->
+      <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin-bottom:.75rem">
+        <span class="mfilter-lbl" data-i18n="set.class_scheme">Classification scheme</span>
+        <div id="scheme-switch-stats" class="scheme-switch" style="display:flex;gap:.375rem;flex-wrap:wrap"></div>
+      </div>
+
       <div class="filter-bar" id="filter-bar">
         <button class="filter-btn" data-days="3"  data-i18n="stats.3d" >3 Days</button>
         <button class="filter-btn" data-days="5"  data-i18n="stats.5d" >5 Days</button>
@@ -433,15 +449,15 @@ select:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(
         </div>
         <div class="thresh-group" style="margin-left:auto;gap:.375rem">
           <button class="filter-btn" id="thresh-btn" onclick="toggleThresh()"><span data-i18n="stats.show_targets">Targets</span></button>
-          <button class="filter-btn" id="zones-btn"  onclick="toggleZones()"><span data-i18n="stats.risk_zones">⬤ Risk zones</span></button>
           <button class="filter-btn" id="gaps-btn" onclick="toggleGaps()" title="Space points by real time (gaps between periods) vs. evenly" style="display:none"><span data-i18n="stats.show_gaps">↔ Time gaps</span></button>
         </div>
       </div>
 
       <div class="stat-grid" id="stat-grid"></div>
       <div class="chart-legend">
-        <div class="chart-legend-item"><div class="dot" style="background:#3b82f6"></div><span data-i18n="stats.sys">Systolic</span></div>
-        <div class="chart-legend-item"><div class="dot" style="background:#10b981"></div><span data-i18n="stats.dia">Diastolic</span></div>
+        <div class="chart-legend-item"><span style="display:inline-block;width:16px;height:3px;border-radius:2px;background:#3b82f6"></span><span data-i18n="stats.sys">Systolic</span></div>
+        <div class="chart-legend-item"><span style="display:inline-block;width:16px;height:3px;border-radius:2px;background:#10b981"></span><span data-i18n="stats.dia">Diastolic</span></div>
+        <div class="chart-legend-item"><span style="display:inline-flex;gap:2px"><span class="dot" style="width:8px;height:8px;background:var(--c-normal-t)"></span><span class="dot" style="width:8px;height:8px;background:var(--c-grad1-t)"></span><span class="dot" style="width:8px;height:8px;background:var(--c-grad3-t)"></span></span><span data-i18n="stats.dot_cat">Dot = day category</span></div>
         <div class="chart-legend-item"><span style="display:inline-block;width:20px;border-top:2px dashed #f59e0b;vertical-align:middle;margin-right:2px"></span><span data-i18n="stats.target">Target</span></div>
       </div>
       <div class="chart-outer" id="chart-outer">
@@ -510,6 +526,8 @@ select:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(
 
     <div class="card">
       <p class="setting-section-title" data-i18n="set.class_sec">BP Classification</p>
+      <div class="setting-label" style="margin-bottom:.4375rem" data-i18n="set.class_scheme">Classification scheme</div>
+      <div id="scheme-switch" class="scheme-switch" style="display:flex;gap:.375rem;flex-wrap:wrap;margin-bottom:.875rem"></div>
       <div class="setting-desc" style="margin-bottom:.875rem" data-i18n="set.class_desc">Set the lower bound (systolic / diastolic, mmHg) at which each category starts. A reading is classified by whichever of its systolic or diastolic value lands in the higher category.</div>
       <div id="class-thresholds"></div>
       <div id="class-error" role="alert" style="display:none;font-size:.8125rem;margin-top:.625rem;padding:.5rem .75rem;border-radius:var(--radius-s);background:var(--c-grad2);color:var(--c-grad2-t)"></div>
@@ -727,8 +745,8 @@ const TRANSLATIONS = {
     'stats.3d':'3 Days','stats.5d':'5 Days','stats.10d':'10 Days','stats.14d':'14 Days','stats.month':'Month','stats.all':'All',
     'stats.session':'Session','stats.reading':'Reading','stats.rdg1':'Rdg 1','stats.rdg2':'Rdg 2',
     'stats.sys_target':'Sys target','stats.dia_target':'Dia target',
-    'stats.show_targets':'Targets','stats.risk_zones':'⬤ Risk zones','stats.show_gaps':'↔ Time gaps',
-    'stats.sys':'Systolic','stats.dia':'Diastolic','stats.target':'Target',
+    'stats.show_targets':'Targets','stats.show_gaps':'↔ Time gaps',
+    'stats.sys':'Systolic','stats.dia':'Diastolic','stats.target':'Target','stats.dot_cat':'Dot = day category',
     'stats.me_title':'Morning vs Evening (period averages)',
     'stats.morning_avg':'☀ Morning Average','stats.evening_avg':'☽ Evening Average',
     'stats.avg_sys':'Avg Systolic','stats.avg_dia':'Avg Diastolic',
@@ -740,8 +758,9 @@ const TRANSLATIONS = {
     'set.stats_sec':'Statistics','set.gap':'Period gap threshold',
     'set.gap_desc':'Days of inactivity before starting a new measurement period',
     'set.class_sec':'BP Classification','set.class_reset':'Reset to defaults',
+    'set.class_scheme':'Classification scheme',
     'set.class_desc':'Set the lower bound (systolic / diastolic, mmHg) at which each category starts. A reading is classified by whichever of its systolic or diastolic value lands in the higher category.',
-    'set.class_optimal':'Optimal — any reading below the Normal threshold.',
+    'set.class_base':'{base} — any reading below the {first} threshold.',
     'err.number':'{cat}: please enter whole numbers for both values.',
     'err.range':'{cat}: {metric} must be between {min} and {max} mmHg.',
     'err.sysdia':'{cat}: systolic must be higher than diastolic.',
@@ -761,6 +780,8 @@ const TRANSLATIONS = {
     'pdf.date':'Report date','pdf.range':'Period covered','pdf.summary':'Summary','pdf.trend':'Trend','pdf.daily':'Daily readings',
     'pdf.date_col':'Date','pdf.day_avg':'Day avg','pdf.classification':'Classification','pdf.no_name':'—',
     'pdf.legend':'Classification legend (systolic / diastolic, mmHg)',
+    'pdf.method':'Classification','pdf.chart_key':'Chart key',
+    'pdf.dots_by_cat':'Dots coloured by the day’s category (higher of systolic / diastolic):',
     'pdf.generated':'Generated with Blood Pressure Tracker','pdf.print':'Print / Save as PDF',
     'gap.2':'2 days','gap.3':'3 days','gap.5':'5 days','gap.7':'7 days','gap.14':'14 days',
     'test.hero':'Generate realistic test data to explore the app, or clean up entries you no longer need.',
@@ -796,8 +817,8 @@ const TRANSLATIONS = {
     'stats.3d':'3 Tage','stats.5d':'5 Tage','stats.10d':'10 Tage','stats.14d':'14 Tage','stats.month':'Monat','stats.all':'Alle',
     'stats.session':'Sitzung','stats.reading':'Messung','stats.rdg1':'M. 1','stats.rdg2':'M. 2',
     'stats.sys_target':'Sys-Ziel','stats.dia_target':'Dia-Ziel',
-    'stats.show_targets':'Ziellinien','stats.risk_zones':'⬤ Risikobereiche','stats.show_gaps':'↔ Zeitlücken',
-    'stats.sys':'Systolisch','stats.dia':'Diastolisch','stats.target':'Ziel',
+    'stats.show_targets':'Ziellinien','stats.show_gaps':'↔ Zeitlücken',
+    'stats.sys':'Systolisch','stats.dia':'Diastolisch','stats.target':'Ziel','stats.dot_cat':'Punkt = Tageskategorie',
     'stats.me_title':'Morgen vs. Abend (Periodendurchschnitt)',
     'stats.morning_avg':'☀ Morgen Ø','stats.evening_avg':'☽ Abend Ø',
     'stats.avg_sys':'Ø Systolisch','stats.avg_dia':'Ø Diastolisch',
@@ -809,8 +830,9 @@ const TRANSLATIONS = {
     'set.stats_sec':'Statistik','set.gap':'Periodenpausen-Schwellenwert',
     'set.gap_desc':'Tage ohne Messungen, bevor eine neue Periode beginnt',
     'set.class_sec':'BD-Klassifikation','set.class_reset':'Auf Standard zurücksetzen',
+    'set.class_scheme':'Klassifikationsschema',
     'set.class_desc':'Legen Sie den unteren Grenzwert (systolisch / diastolisch, mmHg) fest, ab dem jede Kategorie beginnt. Ein Messwert wird nach der höheren der beiden Kategorien (systolisch oder diastolisch) eingestuft.',
-    'set.class_optimal':'Optimal — jeder Wert unterhalb des Normal-Schwellenwerts.',
+    'set.class_base':'{base} — jeder Wert unterhalb des {first}-Schwellenwerts.',
     'err.number':'{cat}: Bitte ganze Zahlen für beide Werte eingeben.',
     'err.range':'{cat}: {metric} muss zwischen {min} und {max} mmHg liegen.',
     'err.sysdia':'{cat}: systolisch muss höher als diastolisch sein.',
@@ -830,6 +852,8 @@ const TRANSLATIONS = {
     'pdf.date':'Berichtsdatum','pdf.range':'Erfasster Zeitraum','pdf.summary':'Zusammenfassung','pdf.trend':'Verlauf','pdf.daily':'Tägliche Messungen',
     'pdf.date_col':'Datum','pdf.day_avg':'Tages-Ø','pdf.classification':'Klassifikation','pdf.no_name':'—',
     'pdf.legend':'Klassifikations-Legende (systolisch / diastolisch, mmHg)',
+    'pdf.method':'Klassifikation','pdf.chart_key':'Diagramm-Legende',
+    'pdf.dots_by_cat':'Punkte nach Tageskategorie gefärbt (höherer von systolisch / diastolisch):',
     'pdf.generated':'Erstellt mit Blood Pressure Tracker','pdf.print':'Drucken / Als PDF speichern',
     'gap.2':'2 Tage','gap.3':'3 Tage','gap.5':'5 Tage','gap.7':'7 Tage','gap.14':'14 Tage',
     'test.hero':'Realistische Testdaten generieren oder nicht mehr benötigte Einträge löschen.',
@@ -881,8 +905,9 @@ function applyLang() {
   if (td) td.querySelectorAll('option').forEach(o => { o.textContent = t('test.days_' + o.value); });
   // Language buttons
   document.querySelectorAll('[data-lang-btn]').forEach(b => b.classList.toggle('active', b.dataset.langBtn === currentLang));
-  // Classification legend + threshold labels depend on language
+  // Classification legend, scheme switch + threshold labels depend on language
   renderClassLegend();
+  renderSchemeButtons();
   renderThresholdSettings();
 }
 
@@ -895,8 +920,8 @@ function persist() { localStorage.setItem(KEY, JSON.stringify(entries)); }
 // Preferences carried along with the readings so a backup fully restores the
 // app. Each is a localStorage key; values are stored/exported as strings.
 const SETTINGS_KEYS = [
-  'bp-classification', 'bp-gap', 'bp-patient-name', 'bp-patient-id',
-  'bp-thresh', 'bp-zones', 'bp-thresh-show', 'bp-gaps', 'bp-lang', 'bp-theme',
+  'bp-classification', 'bp-scheme', 'bp-gap', 'bp-patient-name', 'bp-patient-id',
+  'bp-thresh', 'bp-thresh-show', 'bp-gaps', 'bp-lang', 'bp-theme',
 ];
 function collectSettings() {
   const s = {};
@@ -913,9 +938,10 @@ function applySettings(s) {
   }
   if (!n) return 0;
   gapThreshold = Math.min(Math.max(parseInt(localStorage.getItem('bp-gap')) || 3, 2), 30);
-  bpThresholds = loadThresholds();
+  activeScheme = SCHEMES[localStorage.getItem('bp-scheme')] ? localStorage.getItem('bp-scheme') : 'classic';
+  allThresholds = loadAllThresholds();
+  applyScheme();
   try { thresholds = JSON.parse(localStorage.getItem(THRESH_KEY) || '{}'); } catch (e) { thresholds = {}; }
-  showZones  = localStorage.getItem('bp-zones')       !== 'false';
   showThresh = localStorage.getItem('bp-thresh-show') !== 'false';
   showGaps   = localStorage.getItem('bp-gaps')        !== 'false';
   const lang = localStorage.getItem('bp-lang');
@@ -1106,66 +1132,104 @@ function setPatientField(field, val) {
   localStorage.setItem(field === 'name' ? 'bp-patient-name' : 'bp-patient-id', val);
 }
 
-// ── BP classification (ESC/ESH categories, user-configurable thresholds) ──────
-// Ordered lowest → highest. "optimal" is the implicit base (below the "normal"
-// threshold); the other five keys each store the lower bound (inclusive) at
-// which that category begins.
-const CAT_ORDER = ['optimal', 'normal', 'hochnormal', 'grad1', 'grad2', 'grad3'];
-const CAT_NAMES = {
-  en: { optimal:'Optimal', normal:'Normal', hochnormal:'High-normal', grad1:'Hypertension Grade 1', grad2:'Hypertension Grade 2', grad3:'Hypertension Grade 3' },
-  de: { optimal:'Optimal', normal:'Normal', hochnormal:'Hochnormal', grad1:'Hypertonie Grad 1', grad2:'Hypertonie Grad 2', grad3:'Hypertonie Grad 3' },
-};
-// Compact labels for the chart's zone bands (limited horizontal room)
-const CAT_SHORT = {
-  en: { optimal:'Optimal', normal:'Normal', hochnormal:'High-normal', grad1:'Grade 1', grad2:'Grade 2', grad3:'Grade 3' },
-  de: { optimal:'Optimal', normal:'Normal', hochnormal:'Hochnormal', grad1:'Grad 1', grad2:'Grad 2', grad3:'Grad 3' },
-};
-const DEFAULT_THRESHOLDS = {
-  normal:     { sys:120, dia:80 },
-  hochnormal: { sys:130, dia:85 },
-  grad1:      { sys:140, dia:90 },
-  grad2:      { sys:160, dia:100 },
-  grad3:      { sys:180, dia:110 },
+// ── BP classification (switchable schemes, user-configurable thresholds) ──────
+// A scheme lists its categories lowest → highest. order[0] is the implicit base
+// (anything below the first boundary); every other category key also appears in
+// `defaults` with the inclusive lower bound (sys/dia) at which it begins. Adding
+// a scheme here is all it takes — the whole app (classify, legend, chart, PDF,
+// stats pills, settings editor) is driven off these descriptors.
+const SCHEMES = {
+  classic: {
+    label: { en: 'Classic (ESC/ESH)', de: 'Klassisch (ESC/ESH)' },
+    order: ['optimal', 'normal', 'hochnormal', 'grad1', 'grad2', 'grad3'],
+    names: {
+      en: { optimal:'Optimal', normal:'Normal', hochnormal:'High-normal', grad1:'Hypertension Grade 1', grad2:'Hypertension Grade 2', grad3:'Hypertension Grade 3' },
+      de: { optimal:'Optimal', normal:'Normal', hochnormal:'Hochnormal', grad1:'Hypertonie Grad 1', grad2:'Hypertonie Grad 2', grad3:'Hypertonie Grad 3' },
+    },
+    short: {
+      en: { optimal:'Optimal', normal:'Normal', hochnormal:'High-normal', grad1:'Grade 1', grad2:'Grade 2', grad3:'Grade 3' },
+      de: { optimal:'Optimal', normal:'Normal', hochnormal:'Hochnormal', grad1:'Grad 1', grad2:'Grad 2', grad3:'Grad 3' },
+    },
+    defaults: {
+      normal:     { sys:120, dia:80 },
+      hochnormal: { sys:130, dia:85 },
+      grad1:      { sys:140, dia:90 },
+      grad2:      { sys:160, dia:100 },
+      grad3:      { sys:180, dia:110 },
+    },
+  },
+  esc2024: {
+    label: { en: 'ESC 2024', de: 'ESC 2024' },
+    order: ['nicht_erhoeht', 'erhoeht', 'bluthochdruck'],
+    names: {
+      en: { nicht_erhoeht:'Not elevated', erhoeht:'Elevated', bluthochdruck:'Hypertension' },
+      de: { nicht_erhoeht:'Nicht erhöht', erhoeht:'Erhöht', bluthochdruck:'Bluthochdruck' },
+    },
+    short: {
+      en: { nicht_erhoeht:'Not elev.', erhoeht:'Elevated', bluthochdruck:'Hypertension' },
+      de: { nicht_erhoeht:'Nicht erh.', erhoeht:'Erhöht', bluthochdruck:'Bluthochdruck' },
+    },
+    defaults: {
+      erhoeht:       { sys:120, dia:70 },
+      bluthochdruck: { sys:135, dia:85 },
+    },
+  },
 };
 const CLASS_KEY = 'bp-classification';
-function loadThresholds() {
-  let stored = {};
-  try { stored = JSON.parse(localStorage.getItem(CLASS_KEY) || '{}'); } catch { stored = {}; }
-  const out = {};
-  for (const k of Object.keys(DEFAULT_THRESHOLDS)) {
-    const s = stored[k] || {};
-    out[k] = {
-      sys: Number.isFinite(s.sys) ? s.sys : DEFAULT_THRESHOLDS[k].sys,
-      dia: Number.isFinite(s.dia) ? s.dia : DEFAULT_THRESHOLDS[k].dia,
-    };
+let activeScheme = SCHEMES[localStorage.getItem('bp-scheme')] ? localStorage.getItem('bp-scheme') : 'classic';
+
+// Boundary categories for a scheme = its defaults' keys (order[1..]), ascending.
+function schemeBoundaries(sid) { return Object.keys(SCHEMES[sid].defaults); }
+// Merge stored values over a scheme's defaults, keeping only finite numbers.
+function mergeSchemeThresholds(sid, stored) {
+  const out = {}, def = SCHEMES[sid].defaults;
+  for (const k of Object.keys(def)) {
+    const s = (stored && stored[k]) || {};
+    out[k] = { sys: Number.isFinite(s.sys) ? s.sys : def[k].sys,
+               dia: Number.isFinite(s.dia) ? s.dia : def[k].dia };
   }
   return out;
 }
-let bpThresholds = loadThresholds();
-function saveThresholds() { localStorage.setItem(CLASS_KEY, JSON.stringify(bpThresholds)); }
+// Loads thresholds for every scheme from storage (migrating the old flat
+// classic-only format {normal,…,grad3} to { classic: {…} }).
+function loadAllThresholds() {
+  let stored = {};
+  try { stored = JSON.parse(localStorage.getItem(CLASS_KEY) || '{}'); } catch { stored = {}; }
+  if (stored.normal && !stored.classic && !stored.esc2024) stored = { classic: stored };
+  const out = {};
+  for (const sid of Object.keys(SCHEMES)) out[sid] = mergeSchemeThresholds(sid, stored[sid]);
+  return out;
+}
+let allThresholds = loadAllThresholds();
+
+// Live mirrors of the active scheme — most of the app reads these directly, so
+// switching schemes is just a reassign + re-render.
+let CAT_ORDER, CAT_NAMES, CAT_SHORT, DEFAULT_THRESHOLDS, bpThresholds;
+function applyScheme() {
+  const sc = SCHEMES[activeScheme];
+  CAT_ORDER = sc.order; CAT_NAMES = sc.names; CAT_SHORT = sc.short;
+  DEFAULT_THRESHOLDS = sc.defaults; bpThresholds = allThresholds[activeScheme];
+}
+applyScheme();
+function saveThresholds() { localStorage.setItem(CLASS_KEY, JSON.stringify(allThresholds)); }
 
 // ── BP helpers ───────────────────────────────────────────────────────────────
 function classify(sys, dia) {
   if (!sys || !dia) return null;
-  const T = bpThresholds;
-  // Level 0 = optimal; 1..5 = normal..grad3. A value gets the index of the
-  // highest threshold it reaches; the reading takes the higher of sys/dia.
-  const lvl = (v, k) =>
-    v >= T.grad3[k]      ? 5 :
-    v >= T.grad2[k]      ? 4 :
-    v >= T.grad1[k]      ? 3 :
-    v >= T.hochnormal[k] ? 2 :
-    v >= T.normal[k]     ? 1 : 0;
+  const bks = Object.keys(DEFAULT_THRESHOLDS), T = bpThresholds;
+  // A value's level = how many ascending boundaries it clears; the reading takes
+  // the higher of its systolic and diastolic level.
+  const lvl = (v, m) => { let L = 0; for (let i = 0; i < bks.length; i++) if (v >= T[bks[i]][m]) L = i + 1; return L; };
   return CAT_ORDER[Math.max(lvl(sys, 'sys'), lvl(dia, 'dia'))];
 }
 
 // Human-readable range text for a category, derived from the current thresholds
 // (e.g. "120–129/80–84"). Shared by the Log legend and the PDF legend.
 function catRange(key) {
-  const T = bpThresholds;
-  if (key === 'optimal') return `<${T.normal.sys}/<${T.normal.dia}`;
-  if (key === 'grad3')   return `≥${T.grad3.sys}/≥${T.grad3.dia}`;
-  const next = CAT_ORDER[CAT_ORDER.indexOf(key) + 1];
+  const o = CAT_ORDER, T = bpThresholds, idx = o.indexOf(key);
+  if (idx === 0)            return `<${T[o[1]].sys}/<${T[o[1]].dia}`;     // base
+  if (idx === o.length - 1) return `≥${T[key].sys}/≥${T[key].dia}`;       // top
+  const next = o[idx + 1];
   return `${T[key].sys}–${T[next].sys - 1}/${T[key].dia}–${T[next].dia - 1}`;
 }
 
@@ -1212,16 +1276,16 @@ function renderThresholdSettings() {
         <span class="thresh-unit">mmHg</span>
       </span>
     </div>`).join('');
+  const baseNote = tf('set.class_base', { base: names[CAT_ORDER[0]], first: names[CAT_ORDER[1]] });
   el.innerHTML = rows +
     `<div class="thresh-group" style="padding:.5rem 0 0">
-       <span class="setting-desc">${escAttr(t('set.class_optimal'))}</span>
+       <span class="setting-desc">${escAttr(baseNote)}</span>
      </div>`;
 }
 
 // Physiologically plausible bounds for a threshold (mmHg), shared by the input
 // attributes and the validator.
 const SYS_RANGE = [60, 300], DIA_RANGE = [30, 200];
-const THRESH_KEYS = Object.keys(DEFAULT_THRESHOLDS); // normal → grad3, ascending
 
 // Tiny {placeholder} formatter over the i18n strings
 function tf(key, vars) {
@@ -1233,7 +1297,8 @@ function tf(key, vars) {
 function validateThresholds(cand) {
   const names = CAT_NAMES[currentLang === 'de' ? 'de' : 'en'];
   const metrics = [['sys', SYS_RANGE, t('log.sys')], ['dia', DIA_RANGE, t('log.dia')]];
-  for (const k of THRESH_KEYS) {
+  const bks = Object.keys(DEFAULT_THRESHOLDS); // active scheme's boundary keys
+  for (const k of bks) {
     for (const [m, range, lbl] of metrics) {
       const v = cand[k][m];
       if (!Number.isFinite(v)) return tf('err.number', { cat: names[k] });
@@ -1243,8 +1308,8 @@ function validateThresholds(cand) {
     if (cand[k].sys <= cand[k].dia) return tf('err.sysdia', { cat: names[k] });
   }
   // Each category must sit strictly above the one below it, for both values.
-  for (let i = 1; i < THRESH_KEYS.length; i++) {
-    const prev = THRESH_KEYS[i - 1], cur = THRESH_KEYS[i];
+  for (let i = 1; i < bks.length; i++) {
+    const prev = bks[i - 1], cur = bks[i];
     for (const [m, , lbl] of metrics) {
       if (cand[cur][m] <= cand[prev][m])
         return tf('err.order', { cat: names[cur], metric: lbl, val: cand[cur][m], prev: names[prev], pv: cand[prev][m] });
@@ -1276,16 +1341,37 @@ function setThreshold(cat, k, inputEl) {
     return;
   }
   bpThresholds = cand;
+  allThresholds[activeScheme] = cand;
   saveThresholds();
   clearClassError();
   afterThresholdChange();
 }
 function resetThresholds() {
   bpThresholds = JSON.parse(JSON.stringify(DEFAULT_THRESHOLDS));
+  allThresholds[activeScheme] = bpThresholds;
   saveThresholds();
   clearClassError();
   renderThresholdSettings();
   afterThresholdChange();
+}
+
+// Switches the active classification scheme; only the chosen scheme's threshold
+// editor shows, and every classified view recolours to match.
+function setScheme(sid) {
+  if (!SCHEMES[sid]) return;
+  activeScheme = sid;
+  localStorage.setItem('bp-scheme', sid);
+  applyScheme();
+  clearClassError();
+  renderSchemeButtons();
+  renderThresholdSettings();
+  afterThresholdChange();
+}
+function renderSchemeButtons() {
+  const html = Object.keys(SCHEMES).map(sid =>
+    `<button class="filter-btn${sid === activeScheme ? ' active' : ''}" onclick="setScheme('${sid}')">${escAttr(SCHEMES[sid].label[currentLang === 'de' ? 'de' : 'en'])}</button>`
+  ).join('');
+  document.querySelectorAll('.scheme-switch').forEach(el => { el.innerHTML = html; });
 }
 // Repaint everything that depends on classification after a threshold edit
 function afterThresholdChange() {
@@ -1468,7 +1554,6 @@ let thresholds = JSON.parse(localStorage.getItem(THRESH_KEY) || '{}');
 if (thresholds.sysHigh != null && thresholds.sys == null) thresholds.sys = thresholds.sysHigh;
 if (thresholds.diaHigh != null && thresholds.dia == null) thresholds.dia = thresholds.diaHigh;
 
-let showZones  = localStorage.getItem('bp-zones')       !== 'false';
 let showThresh = localStorage.getItem('bp-thresh-show') !== 'false';
 let showGaps   = localStorage.getItem('bp-gaps')        !== 'false'; // true = space by real time
 
@@ -1487,14 +1572,6 @@ function onThreshChange(key, val) {
   if (outer.querySelector('svg')) renderStats();
 }
 
-function toggleZones() {
-  showZones = !showZones;
-  localStorage.setItem('bp-zones', showZones);
-  document.getElementById('zones-btn').classList.toggle('active', showZones);
-  const outer = document.getElementById('chart-outer');
-  if (outer.querySelector('svg')) renderStats();
-}
-
 function toggleGaps() {
   showGaps = !showGaps;
   localStorage.setItem('bp-gaps', showGaps);
@@ -1508,7 +1585,6 @@ function syncThreshInputs() {
     const el = document.getElementById('thresh-' + k);
     if (el) el.value = thresholds[k] != null ? thresholds[k] : '';
   }
-  document.getElementById('zones-btn').classList.toggle('active', showZones);
   document.getElementById('thresh-btn').classList.toggle('active', showThresh);
   document.getElementById('gaps-btn').classList.toggle('active', showGaps);
 }
@@ -1646,11 +1722,11 @@ function drawChart(days) {
   const W = 760, H = 265, PL = 44, PR = 16, PT = 14, PB = 48;
   const IW = W - PL - PR, IH = H - PT - PB;
   // Y axis floors at 50 but its ceiling grows to fit the highest reading, the
-  // Grade 3 threshold, or the systolic goal line — rounded up with headroom —
-  // so nothing clips at the top when thresholds or readings run high.
+  // top systolic threshold, or the systolic goal line — rounded up with headroom.
   const Y_MIN = 50;
+  const topBoundary = Object.keys(DEFAULT_THRESHOLDS).slice(-1)[0];
   const topData   = days.reduce((m, d) => Math.max(m, d.sysMax ?? d.sys ?? 0), 0);
-  const topThresh = Math.max(bpThresholds.grad3.sys, thresholds.sys || 0);
+  const topThresh = Math.max(bpThresholds[topBoundary].sys, thresholds.sys || 0);
   const Y_MAX = Math.max(200, Math.ceil((Math.max(topData, topThresh) + 8) / 10) * 10);
   const n = days.length;
 
@@ -1674,7 +1750,6 @@ function drawChart(days) {
   const labelCol = dark ? '#7a95b0' : '#94a3b8';
   const sepCol   = dark ? '#7a95b0' : '#94a3b8';
   // Per-category fill [fill-when-on, fill-when-off, accentColour], light & dark.
-  // Bands are built from the live thresholds so they always match the Log/PDF.
   const pal = dark ? {
     optimal:    ['rgba(45,212,191,.13)', 'rgba(45,212,191,.04)', '#5eead4'],
     normal:     ['rgba(132,204,22,.13)', 'rgba(132,204,22,.04)', '#bef264'],
@@ -1682,6 +1757,9 @@ function drawChart(days) {
     grad1:      ['rgba(249,115,22,.15)', 'rgba(249,115,22,.04)', '#fed7aa'],
     grad2:      ['rgba(239,68,68,.13)',  'rgba(239,68,68,.04)',  '#fca5a5'],
     grad3:      ['rgba(168,85,247,.15)', 'rgba(168,85,247,.04)', '#d8b4fe'],
+    nicht_erhoeht: ['rgba(132,204,22,.13)', 'rgba(132,204,22,.04)', '#bef264'],
+    erhoeht:       ['rgba(234,179,8,.15)',  'rgba(234,179,8,.04)',  '#fde68a'],
+    bluthochdruck: ['rgba(239,68,68,.13)',  'rgba(239,68,68,.04)',  '#fca5a5'],
   } : {
     optimal:    ['rgba(45,212,191,.22)', 'rgba(45,212,191,.06)', '#0f766e'],
     normal:     ['rgba(132,204,22,.22)', 'rgba(132,204,22,.06)', '#4d7c0f'],
@@ -1689,20 +1767,12 @@ function drawChart(days) {
     grad1:      ['rgba(253,186,116,.28)','rgba(253,186,116,.07)','#c2410c'],
     grad2:      ['rgba(252,165,165,.22)','rgba(252,165,165,.06)','#b91c1c'],
     grad3:      ['rgba(216,180,254,.28)','rgba(216,180,254,.07)','#6d28d9'],
+    nicht_erhoeht: ['rgba(132,204,22,.22)', 'rgba(132,204,22,.06)', '#4d7c0f'],
+    erhoeht:       ['rgba(253,224,71,.30)', 'rgba(253,224,71,.08)', '#a16207'],
+    bluthochdruck: ['rgba(252,165,165,.22)','rgba(252,165,165,.06)','#b91c1c'],
   };
-  const T = bpThresholds;
-  const short = CAT_SHORT[currentLang === 'de' ? 'de' : 'en'];
-  // Lower systolic bound of each band (optimal starts at the chart floor)
-  const zoneFrom = { optimal:Y_MIN, normal:T.normal.sys, hochnormal:T.hochnormal.sys,
-                     grad1:T.grad1.sys, grad2:T.grad2.sys, grad3:T.grad3.sys };
-  // [yFrom, yTo, fill-when-on, fill-when-off, label, labelColor] — ordered CAT_ORDER
-  const zoneDefs = CAT_ORDER.map((k, i) => {
-    const from = zoneFrom[k];
-    const to = i + 1 < CAT_ORDER.length ? zoneFrom[CAT_ORDER[i + 1]] : Y_MAX;
-    return [from, to, pal[k][0], pal[k][1], short[k], pal[k][2]];
-  });
-  // Accent colour per category, used to tint the hover-tooltip label
-  const catCol = Object.fromEntries(CAT_ORDER.map((k, i) => [k, zoneDefs[i][5]]));
+  // Accent colour per category — used for the day-category markers and tooltip.
+  const catCol = Object.fromEntries(CAT_ORDER.map(k => [k, pal[k][2]]));
 
   const NS = 'http://www.w3.org/2000/svg';
   function mk(tag, attrs, txt) {
@@ -1715,24 +1785,33 @@ function drawChart(days) {
   const svg = mk('svg', { viewBox: `0 0 ${W} ${H}` });
   svg.style.cssText = 'display:block;width:100%;height:auto;';
 
-  // BP zone bands
-  for (const [from, to, fillOn, fillOff, zlabel, zlabelCol] of zoneDefs) {
-    const top = yOf(Math.min(to, Y_MAX)), bot = yOf(Math.max(from, Y_MIN));
-    const h = Math.max(0, bot - top);
-    if (h === 0) continue;
-    svg.appendChild(mk('rect', { x: PL, y: top, width: IW, height: h, fill: showZones ? fillOn : fillOff }));
-    if (showZones && h > 10) {
-      const cy = top + h / 2 + 4;
-      svg.appendChild(mk('text', { x: PL + IW - 5, y: cy, 'text-anchor': 'end',
-        'font-size': 9, 'font-weight': 600, fill: zlabelCol, opacity: 0.75 }, zlabel));
-    }
-  }
-
-  // Defs / clip
+  // Defs / clip / gradients / soft shadow — a little depth so the plot doesn't
+  // read as flat and sterile.
   const defs = mk('defs', {});
   const clip = mk('clipPath', { id: 'cc' });
   clip.appendChild(mk('rect', { x: PL, y: PT, width: IW, height: IH }));
-  defs.appendChild(clip); svg.appendChild(defs);
+  defs.appendChild(clip);
+  const grad = (id, c0) => {
+    const lg = mk('linearGradient', { id, x1: 0, y1: 0, x2: 0, y2: 1 });
+    lg.appendChild(mk('stop', { offset: '0%',   'stop-color': c0, 'stop-opacity': dark ? 0.34 : 0.26 }));
+    lg.appendChild(mk('stop', { offset: '70%',  'stop-color': c0, 'stop-opacity': 0.04 }));
+    lg.appendChild(mk('stop', { offset: '100%', 'stop-color': c0, 'stop-opacity': 0 }));
+    defs.appendChild(lg);
+  };
+  grad('sysGrad', '#3b82f6');
+  grad('diaGrad', '#10b981');
+  const bgg = mk('linearGradient', { id: 'plotbg', x1: 0, y1: 0, x2: 0, y2: 1 });
+  bgg.appendChild(mk('stop', { offset: '0%',   'stop-color': dark ? '#ffffff' : '#64748b', 'stop-opacity': dark ? 0.05 : 0.06 }));
+  bgg.appendChild(mk('stop', { offset: '100%', 'stop-color': dark ? '#ffffff' : '#64748b', 'stop-opacity': 0 }));
+  defs.appendChild(bgg);
+  const fsh = mk('filter', { id: 'softsh', x: '-10%', y: '-25%', width: '120%', height: '150%' });
+  fsh.appendChild(mk('feDropShadow', { dx: 0, dy: 1.4, stdDeviation: 1.6,
+    'flood-color': dark ? '#000000' : '#1e293b', 'flood-opacity': dark ? 0.55 : 0.22 }));
+  defs.appendChild(fsh);
+  svg.appendChild(defs);
+
+  // Faint plot-area sheen
+  svg.appendChild(mk('rect', { x: PL, y: PT, width: IW, height: IH, fill: 'url(#plotbg)', rx: 4 }));
 
   // Period separators — vertical dashed lines where gaps appear (drawn in both
   // modes; without gaps they sit at the midpoint between the two flush points)
@@ -1760,23 +1839,12 @@ function drawChart(days) {
     });
   }
 
-  // Y grid + labels. The systolic classification boundaries become emphasised,
-  // colour-coded gridlines so the zone bands are self-explanatory and the axis
-  // labels always line up with where one category turns into the next; a few
-  // neutral reference ticks fill in the lower range.
-  const threshY = {}; // systolic value → band accent colour
-  for (const k of ['normal', 'hochnormal', 'grad1', 'grad2', 'grad3']) threshY[bpThresholds[k].sys] = catCol[k];
-  const tickVals = Array.from(new Set([60, 80, 100].concat(Object.keys(threshY).map(Number))))
-    .filter(v => v >= Y_MIN && v <= Y_MAX)
-    .sort((a, b) => a - b);
-  for (const tv of tickVals) {
+  // Y grid + labels — plain reference lines (category is shown by the dots now)
+  for (const tv of [60, 80, 100, 120, 140, 160, 180, 200, 220, 240]) {
+    if (tv < Y_MIN || tv > Y_MAX) continue;
     const y = yOf(tv);
-    const accent = threshY[tv]; // defined only on a classification boundary
-    svg.appendChild(mk('line', { x1: PL, x2: PL+IW, y1: y, y2: y,
-      stroke: accent || gridCol, 'stroke-width': 1,
-      ...(accent ? { 'stroke-dasharray': '4,3', opacity: 0.55 } : {}) }));
-    svg.appendChild(mk('text', { x: PL-6, y: y+4, 'text-anchor': 'end', 'font-size': 11,
-      fill: accent || labelCol, 'font-weight': accent ? 600 : 400 }, tv));
+    svg.appendChild(mk('line', { x1: PL, x2: PL+IW, y1: y, y2: y, stroke: gridCol, 'stroke-width': 1 }));
+    svg.appendChild(mk('text', { x: PL-6, y: y+4, 'text-anchor': 'end', 'font-size': 11, fill: labelCol }, tv));
   }
 
   // X axis labels
@@ -1788,8 +1856,6 @@ function drawChart(days) {
   } else {
     for (let t = 0; t < numTicks; t++) {
       const frac = t / (numTicks - 1);
-      // With gaps: tick at a linear-time position. Without gaps: tick on an
-      // actual entry (time isn't linear across x), labelled with its own date.
       let x, ms;
       if (withGaps) { x = PL + frac * IW; ms = minD + frac * span; }
       else { const idx = Math.round(frac * (n - 1)); x = xOf(idx); ms = dates[idx]; }
@@ -1803,24 +1869,48 @@ function drawChart(days) {
   svg.appendChild(mk('line', { x1: PL, x2: PL,    y1: PT,    y2: PT+IH, stroke: axisCol, 'stroke-width': 1 }));
   svg.appendChild(mk('line', { x1: PL, x2: PL+IW, y1: PT+IH, y2: PT+IH, stroke: axisCol, 'stroke-width': 1 }));
 
-  // Data series — line breaks at period gaps (only when gaps are shown; the
-  // compressed view draws one continuous line across periods)
-  function drawSeries(key, color) {
-    let d = ''; let open = false;
+  // Each day's category (higher of sys/dia); drives the marker colour so a day
+  // is flagged even when only one of its two values is elevated.
+  const dayCat = days.map(d => classify(d.sys, d.dia));
+
+  // Data series — a soft gradient area under the line adds depth, the line keeps
+  // its identity colour (blue=sys, green=dia) with a subtle shadow, and each
+  // marker is filled with the DAY'S category colour.
+  function drawSeries(key, color, gradId) {
+    // Group points into continuous runs (break at nulls and, when gaps are
+    // shown, at period gaps) so areas/lines don't bridge across gaps.
+    const runs = []; let run = null;
     for (let i = 0; i < n; i++) {
       const v = days[i][key];
-      if (v == null) { open = false; continue; }
-      if (open && withGaps && isGap(i)) open = false;
-      const x = xOf(i).toFixed(1), y = yOf(v).toFixed(1);
-      d += open ? `L${x},${y}` : `M${x},${y}`;
-      open = true;
+      if (v == null) { if (run) { runs.push(run); run = null; } continue; }
+      if (run && withGaps && isGap(i)) { runs.push(run); run = null; }
+      const pt = { x: +xOf(i).toFixed(1), y: +yOf(v).toFixed(1) };
+      if (!run) run = [pt]; else run.push(pt);
     }
-    if (d) svg.appendChild(mk('path', { d, fill: 'none', stroke: color, 'stroke-width': 2.5,
-      'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'clip-path': 'url(#cc)' }));
+    if (run) runs.push(run);
+    const baseY = PT + IH;
+    // Area fill (gradient fading downward)
+    for (const r of runs) {
+      if (r.length < 2) continue;
+      let d = `M${r[0].x},${baseY}`;
+      for (const p of r) d += `L${p.x},${p.y}`;
+      d += `L${r[r.length-1].x},${baseY}Z`;
+      svg.appendChild(mk('path', { d, fill: `url(#${gradId})`, stroke: 'none', 'clip-path': 'url(#cc)' }));
+    }
+    // Line
+    for (const r of runs) {
+      let d = `M${r[0].x},${r[0].y}`;
+      for (let k = 1; k < r.length; k++) d += `L${r[k].x},${r[k].y}`;
+      svg.appendChild(mk('path', { d, fill: 'none', stroke: color, 'stroke-width': 2.5,
+        'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'clip-path': 'url(#cc)', filter: 'url(#softsh)' }));
+    }
+    // Markers — filled with the day's category colour (thin neutral halo only,
+    // so the colour reads clearly); the line keeps its blue/green identity.
     for (let i = 0; i < n; i++) {
       if (days[i][key] == null) continue;
+      const fill = (dayCat[i] && catCol[dayCat[i]]) || color;
       svg.appendChild(mk('circle', { cx: xOf(i).toFixed(1), cy: yOf(days[i][key]).toFixed(1),
-        r: 4, fill: color, stroke: '#fff', 'stroke-width': 2 }));
+        r: 5, fill, stroke: dark ? '#0d1829' : '#ffffff', 'stroke-width': 1.5, filter: 'url(#softsh)' }));
     }
   }
 
@@ -1853,19 +1943,25 @@ function drawChart(days) {
   drawBand('sysMin', 'sysMax', dark ? 'rgba(59,130,246,.32)'  : 'rgba(59,130,246,.26)');
   drawBand('diaMin', 'diaMax', dark ? 'rgba(16,185,129,.32)'  : 'rgba(16,185,129,.26)');
 
-  drawSeries('sys', '#3b82f6');
-  drawSeries('dia', '#10b981');
+  drawSeries('sys', '#3b82f6', 'sysGrad');
+  drawSeries('dia', '#10b981', 'diaGrad');
 
-  // Target lines
+  // Target lines — a contrast backing + bold amber dash + a solid label pill so
+  // the goal stays clearly readable over the shaded series.
   function drawThresh(val, label) {
     if (!showThresh) return;
     if (val == null || isNaN(val) || val < Y_MIN || val > Y_MAX) return;
     const y = yOf(val);
+    // soft contrast backing so the dash reads without a heavy backing line
     svg.appendChild(mk('line', { x1: PL, x2: PL+IW, y1: y, y2: y,
-      stroke: '#f59e0b', 'stroke-width': 1.5, 'stroke-dasharray': '5,4',
-      opacity: 0.7, 'clip-path': 'url(#cc)' }));
+      stroke: dark ? '#0d1829' : '#ffffff', 'stroke-width': 3.5, opacity: 0.45, 'clip-path': 'url(#cc)' }));
+    svg.appendChild(mk('line', { x1: PL, x2: PL+IW, y1: y, y2: y,
+      stroke: '#f59e0b', 'stroke-width': 1.75, 'stroke-dasharray': '6,4', 'clip-path': 'url(#cc)' }));
+    // label with a subtle halo (paint-order: stroke behind fill) — legible, no pill
     svg.appendChild(mk('text', { x: PL + 4, y: y - 3, 'text-anchor': 'start',
-      'font-size': 9, fill: '#d97706', opacity: 0.9, 'font-weight': 600 }, `${label} ${val}`));
+      'font-size': 9, 'font-weight': 700, fill: '#d97706',
+      stroke: dark ? '#0d1829' : '#ffffff', 'stroke-width': 2.5, 'stroke-linejoin': 'round',
+      'paint-order': 'stroke' }, `${label} ${val}`));
   }
   drawThresh(thresholds.sys, 'Sys');
   drawThresh(thresholds.dia, 'Dia');
@@ -1882,7 +1978,7 @@ function drawChart(days) {
   ov.addEventListener('mousemove', ev => {
     const r = svg.getBoundingClientRect();
     const mx = (ev.clientX - r.left) * (W / r.width);
-    if (mx < PL || mx > PL + IW) { vline.setAttribute('opacity', 0); tip.style.opacity = 0; return; }
+    if (mx < PL || mx > PL + IW || !n) { vline.setAttribute('opacity', 0); tip.style.opacity = 0; return; }
     let best = 0;
     for (let i = 1; i < n; i++) if (Math.abs(xOf(i) - mx) < Math.abs(xOf(best) - mx)) best = i;
     const d = days[best], x = xOf(best);
@@ -1913,6 +2009,7 @@ const PDF_CAT = {
   optimal:   ['#ccfbf1','#0f766e'], normal:     ['#dcfce7','#15803d'],
   hochnormal:['#fef9c3','#a16207'], grad1:      ['#ffedd5','#c2410c'],
   grad2:     ['#fee2e2','#b91c1c'], grad3:      ['#ede9fe','#6d28d9'],
+  nicht_erhoeht:['#dcfce7','#15803d'], erhoeht:['#fef9c3','#a16207'], bluthochdruck:['#fee2e2','#b91c1c'],
 };
 
 function exportPDF() {
@@ -1940,6 +2037,14 @@ function exportPDF() {
   const mSys = avg(days.map(d=>d.mSys).filter(Boolean)), mDia = avg(days.map(d=>d.mDia).filter(Boolean));
   const eSys = avg(days.map(d=>d.eSys).filter(Boolean)), eDia = avg(days.map(d=>d.eDia).filter(Boolean));
   const hi = a => a.length ? Math.max(...a) : '—', lo = a => a.length ? Math.min(...a) : '—';
+
+  // Target (goal) key — only when targets are enabled and at least one is set
+  const goalParts = [];
+  if (thresholds.sys != null) goalParts.push(`${t('stats.sys')} ${thresholds.sys}`);
+  if (thresholds.dia != null) goalParts.push(`${t('stats.dia')} ${thresholds.dia}`);
+  const goalKey = (showThresh && goalParts.length)
+    ? `<span class="ck"><span class="ck-goal"></span>${esc(t('stats.target'))}: ${esc(goalParts.join(' / '))} mmHg</span>`
+    : '';
 
   // Light-theme chart for print, then restore the live (possibly dark) chart
   chartForceLight = true;
@@ -1976,6 +2081,15 @@ function exportPDF() {
   }).join('');
 
   const stat = (v,l) => `<div class="s"><div class="sv">${v}</div><div class="sl">${esc(l)}</div></div>`;
+  // Stat tile with a quick classification pill + colour-accent spine (mirrors the
+  // Statistics summary cards), driven by the pair's day category.
+  const short = CAT_SHORT[de ? 'de' : 'en'];
+  const statC = (v,l,s,d) => {
+    const c = classify(s, d);
+    const spine = c ? ` style="border-left-color:${PDF_CAT[c][1]}"` : '';
+    const pill = c ? `<div class="scat" style="background:${PDF_CAT[c][0]};color:${PDF_CAT[c][1]}">${esc(short[c])}</div>` : '';
+    return `<div class="s accent"${spine}><div class="sv">${v}</div><div class="sl">${esc(l)}</div>${pill}</div>`;
+  };
 
   const html = `<!DOCTYPE html><html lang="${currentLang}"><head><meta charset="UTF-8">
 <title>${esc(t('pdf.title'))}${pName ? ' – '+esc(pName) : ''}</title>
@@ -1992,6 +2106,9 @@ function exportPDF() {
   .s{border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px;background:#f8fafc}
   .sv{font-size:18px;font-weight:700}
   .sl{font-size:10.5px;color:#64748b;margin-top:2px}
+  .s{position:relative}
+  .scat{display:inline-block;margin-top:5px;font-size:7.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:1px 5px;border-radius:20px}
+  .s.accent{border-left:3px solid #cbd5e1}
   .chart{border:1px solid #e2e8f0;border-radius:8px;padding:10px}
   .chart svg{display:block;width:100%;height:auto}
   table{width:100%;border-collapse:collapse;font-size:11px}
@@ -2008,6 +2125,10 @@ function exportPDF() {
   .legend-h{font-size:8.5px;text-transform:uppercase;letter-spacing:.04em;color:#94a3b8;font-weight:600;margin:14px 0 4px}
   .legend{display:flex;flex-wrap:wrap;gap:4px}
   .legend .chip{font-size:7px;padding:1px 5px;border-radius:4px}
+  .ck{display:inline-flex;align-items:center;gap:4px;font-size:9px;color:#475569}
+  .ck-ln{display:inline-block;width:16px;height:3px;border-radius:2px}
+  .ck-dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:linear-gradient(90deg,#15803d,#a16207,#c2410c,#b91c1c)}
+  .ck-goal{display:inline-block;width:16px;height:0;border-top:2px dashed #f59e0b}
   .foot{margin-top:22px;padding-top:10px;border-top:1px solid #e2e8f0;font-size:10px;color:#94a3b8;text-align:center}
   .noprint{margin-top:16px;text-align:center}
   .noprint button{font:inherit;font-weight:600;padding:9px 20px;border:none;border-radius:7px;background:#2563eb;color:#fff;cursor:pointer}
@@ -2023,15 +2144,16 @@ function exportPDF() {
     <div class="hdr-r">
       <div class="meta"><span class="k">${esc(t('pdf.date'))}:</span> ${esc(reportDate)}</div>
       <div class="meta"><span class="k">${esc(t('pdf.range'))}:</span> ${esc(rangeTxt)}</div>
+      <div class="meta"><span class="k">${esc(t('pdf.method'))}:</span> ${esc(SCHEMES[activeScheme].label[de?'de':'en'])}</div>
     </div>
   </div>
   <h2>${esc(t('pdf.summary'))}</h2>
   <div class="stats">
-    ${stat(`${avg(allSys)??'—'}/${avg(allDia)??'—'}`, `${t('stats.avg_sys')} / ${t('stats.avg_dia')}`)}
-    ${stat(`${hi(allSys)}/${hi(allDia)}`, t('stats.highest'))}
-    ${stat(`${lo(allSys)}/${lo(allDia)}`, t('stats.lowest'))}
-    ${stat(`${mSys??'—'}/${mDia??'—'}`, t('stats.morning_avg'))}
-    ${stat(`${eSys??'—'}/${eDia??'—'}`, t('stats.evening_avg'))}
+    ${statC(`${avg(allSys)??'—'}/${avg(allDia)??'—'}`, `${t('stats.avg_sys')} / ${t('stats.avg_dia')}`, avg(allSys), avg(allDia))}
+    ${statC(`${hi(allSys)}/${hi(allDia)}`, t('stats.highest'), hi(allSys), hi(allDia))}
+    ${statC(`${lo(allSys)}/${lo(allDia)}`, t('stats.lowest'), lo(allSys), lo(allDia))}
+    ${statC(`${mSys??'—'}/${mDia??'—'}`, t('stats.morning_avg'), mSys, mDia)}
+    ${statC(`${eSys??'—'}/${eDia??'—'}`, t('stats.evening_avg'), eSys, eDia)}
     ${stat(days.length, t('stats.days'))}
   </div>
   <h2>${esc(t('pdf.trend'))}</h2>
@@ -2055,7 +2177,13 @@ function exportPDF() {
     </thead>
     <tbody>${rows}</tbody>
   </table>
-  <div class="legend-h">${esc(t('pdf.legend'))}</div>
+  <div class="legend-h">${esc(t('pdf.chart_key'))}</div>
+  <div class="legend" style="gap:12px;margin-bottom:6px">
+    <span class="ck"><span class="ck-ln" style="background:#3b82f6"></span>${esc(t('stats.sys'))}</span>
+    <span class="ck"><span class="ck-ln" style="background:#10b981"></span>${esc(t('stats.dia'))}</span>
+    <span class="ck"><span class="ck-dot"></span>${esc(t('pdf.dots_by_cat'))}</span>
+    ${goalKey}
+  </div>
   <div class="legend">
     ${CAT_ORDER.map(c =>
       `<span class="chip" style="background:${PDF_CAT[c][0]};color:${PDF_CAT[c][1]}">${esc(CAT_NAMES[de?'de':'en'][c])} ${esc(catRange(c))}</span>`).join('')}
