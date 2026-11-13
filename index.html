@@ -170,9 +170,11 @@ tbody tr:hover td{background:var(--surf-2);}
 
 /* ── Stat summary cards ──────────────────────────── */
 .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:.75rem;margin-bottom:1.125rem;}
-.stat-card{background:var(--surf-2);border:1px solid var(--border);border-radius:var(--radius-s);padding:.8125rem .9375rem;transition:background .3s,border-color .3s;}
+.stat-card{background:var(--surf-2);border:1px solid var(--border);border-left:3px solid var(--border);border-radius:var(--radius-s);padding:.8125rem .9375rem;transition:background .3s,border-color .3s;}
 .stat-card .val{font-size:1.3125rem;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.1;margin-bottom:.1875rem;}
 .stat-card .lbl{font-size:.6875rem;color:var(--muted);}
+/* Classification pill shown on cards / morning-evening headers */
+.stat-chip{display:inline-block;margin-top:.5rem;font-size:.5625rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:.1875rem .5rem;border-radius:20px;line-height:1;white-space:nowrap;}
 
 /* ── Chart ───────────────────────────────────────── */
 .chart-outer{position:relative;width:100%;}
@@ -185,8 +187,10 @@ tbody tr:hover td{background:var(--surf-2);}
 
 /* ── Me-grid (morning/evening breakdown) ─────────── */
 .me-grid{display:grid;grid-template-columns:1fr 1fr;gap:.875rem;}
-.me-card{background:var(--surf-2);border:1px solid var(--border);border-radius:var(--radius-s);padding:.875rem 1rem;transition:background .3s,border-color .3s;}
-.me-title{font-size:.625rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:.5rem;}
+.me-card{background:var(--surf-2);border:1px solid var(--border);border-left:3px solid var(--border);border-radius:var(--radius-s);padding:.875rem 1rem;transition:background .3s,border-color .3s;}
+.me-head{display:flex;align-items:center;justify-content:space-between;gap:.5rem;margin-bottom:.5rem;}
+.me-head .stat-chip{margin-top:0;}
+.me-title{font-size:.625rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;}
 .me-title.morning{color:var(--c-elev-t);}
 .me-title.evening{color:var(--c-crisis-t);}
 .me-vals{display:flex;gap:1.375rem;}
@@ -1165,6 +1169,20 @@ function catRange(key) {
   return `${T[key].sys}–${T[next].sys - 1}/${T[key].dia}–${T[next].dia - 1}`;
 }
 
+// A compact classification pill for a sys/dia pair (used by the Statistics
+// summary cards and the morning/evening breakdown). Empty string when unknown.
+function catPill(sys, dia) {
+  const c = classify(sys, dia);
+  if (!c) return '';
+  const name = (currentLang === 'de' ? CAT_SHORT.de : CAT_SHORT.en)[c];
+  return `<span class="stat-chip bp-${c}">${escAttr(name)}</span>`;
+}
+// Inline style that tints a card's left accent spine by classification
+function catSpine(sys, dia) {
+  const c = classify(sys, dia);
+  return c ? `border-left-color:var(--c-${c}-t)` : '';
+}
+
 // Renders the colour-coded legend chips in the Log tab from the live thresholds
 function renderClassLegend() {
   const el = document.getElementById('class-legend');
@@ -1577,11 +1595,17 @@ function renderStats() {
   const allSys = days.map(d => d.sys).filter(Boolean);
   const allDia = days.map(d => d.dia).filter(Boolean);
 
+  // The overall-average category (shared by both average cards); highest/lowest
+  // each classify their own extreme pair.
+  const aSys = avg(allSys), aDia = avg(allDia);
+  const hiS = Math.max(...allSys), hiD = Math.max(...allDia);
+  const loS = Math.min(...allSys), loD = Math.min(...allDia);
+
   grid.innerHTML = `
-    <div class="stat-card"><div class="val">${avg(allSys) ?? '—'}</div><div class="lbl">${t('stats.avg_sys')}</div></div>
-    <div class="stat-card"><div class="val">${avg(allDia) ?? '—'}</div><div class="lbl">${t('stats.avg_dia')}</div></div>
-    <div class="stat-card"><div class="val">${Math.max(...allSys)}/${Math.max(...allDia)}</div><div class="lbl">${t('stats.highest')}</div></div>
-    <div class="stat-card"><div class="val">${Math.min(...allSys)}/${Math.min(...allDia)}</div><div class="lbl">${t('stats.lowest')}</div></div>
+    <div class="stat-card" style="${catSpine(aSys, aDia)}"><div class="val">${aSys ?? '—'}</div><div class="lbl">${t('stats.avg_sys')}</div>${catPill(aSys, aDia)}</div>
+    <div class="stat-card" style="${catSpine(aSys, aDia)}"><div class="val">${aDia ?? '—'}</div><div class="lbl">${t('stats.avg_dia')}</div>${catPill(aSys, aDia)}</div>
+    <div class="stat-card" style="${catSpine(hiS, hiD)}"><div class="val">${hiS}/${hiD}</div><div class="lbl">${t('stats.highest')}</div>${catPill(hiS, hiD)}</div>
+    <div class="stat-card" style="${catSpine(loS, loD)}"><div class="val">${loS}/${loD}</div><div class="lbl">${t('stats.lowest')}</div>${catPill(loS, loD)}</div>
     <div class="stat-card"><div class="val">${days.length}</div><div class="lbl">${t('stats.days')}</div></div>
   `;
 
@@ -1591,15 +1615,15 @@ function renderStats() {
   const eDia = avg(days.map(d => d.eDia).filter(Boolean));
 
   meGrid.innerHTML = `
-    <div class="me-card">
-      <div class="me-title morning">${t('stats.morning_avg')}</div>
+    <div class="me-card" style="${catSpine(mSys, mDia)}">
+      <div class="me-head"><div class="me-title morning">${t('stats.morning_avg')}</div>${catPill(mSys, mDia)}</div>
       <div class="me-vals">
         <div class="me-val"><div class="v">${mSys ?? '—'}</div><div class="l">${t('stats.sys')}</div></div>
         <div class="me-val"><div class="v">${mDia ?? '—'}</div><div class="l">${t('stats.dia')}</div></div>
       </div>
     </div>
-    <div class="me-card">
-      <div class="me-title evening">${t('stats.evening_avg')}</div>
+    <div class="me-card" style="${catSpine(eSys, eDia)}">
+      <div class="me-head"><div class="me-title evening">${t('stats.evening_avg')}</div>${catPill(eSys, eDia)}</div>
       <div class="me-vals">
         <div class="me-val"><div class="v">${eSys ?? '—'}</div><div class="l">${t('stats.sys')}</div></div>
         <div class="me-val"><div class="v">${eDia ?? '—'}</div><div class="l">${t('stats.dia')}</div></div>
