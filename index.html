@@ -161,6 +161,12 @@ tbody tr:hover td{background:var(--surf-2);}
 .filter-btn{padding:.3125rem .6875rem;border:1.5px solid var(--border);border-radius:6px;background:var(--surf);font-size:.8125rem;font-weight:500;font-family:inherit;color:var(--muted);cursor:pointer;transition:all .15s;}
 .filter-btn:hover{border-color:var(--primary);color:var(--primary);}
 .filter-btn.active{background:var(--primary);border-color:var(--primary);color:#fff;box-shadow:0 1px 4px rgba(59,130,246,.3);}
+.custom-range{display:flex;align-items:flex-end;gap:.5rem;flex-wrap:wrap;margin:-.25rem 0 .75rem;}
+.custom-range>div{display:flex;flex-direction:column;}
+.custom-range label{margin-bottom:.1875rem;}
+.custom-range input[type="date"]{width:auto;min-width:9.5rem;font-size:.8125rem;padding:.3125rem .5rem;}
+.custom-range[hidden],.custom-range [hidden]{display:none;}
+.custom-range .cr-err{font-size:.75rem;color:#ef4444;align-self:center;}
 .period-bar{display:flex;align-items:center;gap:.3125rem;flex-wrap:wrap;margin-bottom:.75rem;padding-bottom:.75rem;border-bottom:1px solid var(--border);}
 .period-select{min-width:12rem;font-size:.8125rem;}
 .mfilter-bar{display:flex;align-items:center;gap:.3125rem;flex-wrap:wrap;padding:.75rem 0;margin-bottom:.875rem;border-bottom:1px solid var(--border);}
@@ -418,6 +424,12 @@ select:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(
         <button class="filter-btn" data-days="14" data-i18n="stats.14d">14 Days</button>
         <button class="filter-btn" data-days="30" data-i18n="stats.month">Month</button>
         <button class="filter-btn" data-days="0"  data-i18n="stats.all" >All</button>
+        <button class="filter-btn" data-days="-1" data-i18n="stats.custom">Custom</button>
+      </div>
+      <div class="custom-range" id="custom-range" hidden>
+        <div><label for="range-from" data-i18n="stats.from">From</label><input type="date" id="range-from" onchange="onCustomRange()"></div>
+        <div><label for="range-to" data-i18n="stats.to">To</label><input type="date" id="range-to" onchange="onCustomRange()"></div>
+        <span class="cr-err" id="range-err" data-i18n="stats.range_err" hidden>"From" must not be after "To".</span>
       </div>
 
       <!-- Measurement filters -->
@@ -743,7 +755,7 @@ const TRANSLATIONS = {
     'log.table':'Measurement Log','log.tbl_date':'Date',
     'log.tbl_morning':'☀ Morning','log.tbl_evening':'☽ Evening','log.empty':'No entries yet.',
     'stats.trends':'Trends',
-    'stats.3d':'3 Days','stats.5d':'5 Days','stats.10d':'10 Days','stats.14d':'14 Days','stats.month':'Month','stats.all':'All',
+    'stats.3d':'3 Days','stats.5d':'5 Days','stats.10d':'10 Days','stats.14d':'14 Days','stats.month':'Month','stats.all':'All','stats.custom':'Custom','stats.from':'From','stats.to':'To','stats.range_err':'"From" must not be after "To".',
     'stats.session':'Session','stats.reading':'Reading','stats.rdg1':'Rdg 1','stats.rdg2':'Rdg 2',
     'stats.sys_target':'Sys target','stats.dia_target':'Dia target',
     'stats.show_targets':'Targets','stats.show_gaps':'↔ Time gaps',
@@ -815,7 +827,7 @@ const TRANSLATIONS = {
     'log.table':'Messprotokoll','log.tbl_date':'Datum',
     'log.tbl_morning':'☀ Morgen','log.tbl_evening':'☽ Abend','log.empty':'Noch keine Einträge.',
     'stats.trends':'Verlauf',
-    'stats.3d':'3 Tage','stats.5d':'5 Tage','stats.10d':'10 Tage','stats.14d':'14 Tage','stats.month':'Monat','stats.all':'Alle',
+    'stats.3d':'3 Tage','stats.5d':'5 Tage','stats.10d':'10 Tage','stats.14d':'14 Tage','stats.month':'Monat','stats.all':'Alle','stats.custom':'Benutzerdefiniert','stats.from':'Von','stats.to':'Bis','stats.range_err':'„Von" darf nicht nach „Bis" liegen.',
     'stats.session':'Sitzung','stats.reading':'Messung','stats.rdg1':'M. 1','stats.rdg2':'M. 2',
     'stats.sys_target':'Sys-Ziel','stats.dia_target':'Dia-Ziel',
     'stats.show_targets':'Ziellinien','stats.show_gaps':'↔ Zeitlücken',
@@ -1472,7 +1484,11 @@ function deleteEntry(id) {
 }
 
 // ── Stats ─────────────────────────────────────────────────────────────────────
-let activeDays = 10;
+let activeDays = 10; // 0 = all, -1 = custom date range (rangeFrom..rangeTo)
+let rangeFrom = '', rangeTo = '';
+
+// Local-date ISO string (avoids the UTC shift of toISOString)
+const isoLocal = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 
 // Time-range filter (only buttons with data-days attribute)
 document.querySelectorAll('[data-days]').forEach(btn =>
@@ -1480,9 +1496,34 @@ document.querySelectorAll('[data-days]').forEach(btn =>
     document.querySelectorAll('[data-days]').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     activeDays = parseInt(btn.dataset.days);
+    if (activeDays === -1) initCustomRange();
+    document.getElementById('custom-range').hidden = activeDays !== -1;
     renderStats();
   })
 );
+
+// Prefill the custom range with the 30 days up to the latest reading
+// (so it is useful right away even if measuring stopped a while ago).
+function initCustomRange() {
+  const fromEl = document.getElementById('range-from'), toEl = document.getElementById('range-to');
+  if (rangeFrom && rangeTo) { fromEl.value = rangeFrom; toEl.value = rangeTo; return; }
+  const dates = entries.map(e => e.date).sort();
+  const last  = dates.length ? dates[dates.length - 1] : isoLocal(new Date());
+  const start = new Date(last + 'T00:00:00'); start.setDate(start.getDate() - 29);
+  const first = dates.length && dates[0] > isoLocal(start) ? dates[0] : isoLocal(start);
+  fromEl.value = rangeFrom = first;
+  toEl.value   = rangeTo   = last;
+  document.getElementById('range-err').hidden = true;
+}
+
+function onCustomRange() {
+  const f = document.getElementById('range-from').value, to = document.getElementById('range-to').value;
+  const bad = f && to && f > to;
+  document.getElementById('range-err').hidden = !bad;
+  if (bad) return;
+  rangeFrom = f; rangeTo = to;
+  renderStats();
+}
 
 // ── Measurement periods ───────────────────────────────────────────────────────
 let activePeriod = -1; // -1 = all periods
@@ -1592,6 +1633,12 @@ function syncThreshInputs() {
 
 function filteredEntries() {
   const sorted = [...entries].sort((a,b) => a.date.localeCompare(b.date));
+  if (activeDays === -1) {
+    // Custom range — absolute dates, applied within the selected period (if any)
+    const src = activePeriod === -1 ? sorted
+      : (detectPeriods()[activePeriod] || []).slice().sort((a,b) => a.date.localeCompare(b.date));
+    return src.filter(e => (!rangeFrom || e.date >= rangeFrom) && (!rangeTo || e.date <= rangeTo));
+  }
   if (activePeriod === -1) {
     // All periods — time filter applies from today
     if (activeDays === 0) return sorted;
